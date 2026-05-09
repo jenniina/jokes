@@ -1,0 +1,250 @@
+.toggle-container {
+  --height: calc(2.5em * var(--responsive_scale, 1));
+  --width: calc(var(--height) * 3.4);
+  --rad: calc(var(--height) / 2.1);
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+  justify-content: center;
+}
+.toggle-container.small,
+.toggle-container.small * {
+  --height: calc(1.1em * var(--responsive_scale, 1));
+  --width: calc(var(--height) * 1.7);
+}
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: var(--width);
+  height: var(--height);
+  -webkit-box-shadow: 0px 0.1em 0.2em rgba(0, 0, 0, 0.3);
+  -moz-box-shadow: 0px 0.1em 0.2em rgba(0, 0, 0, 0.3);
+  -o-box-shadow: 0px 0.1em 0.2em rgba(0, 0, 0, 0.3);
+  -ms-box-shadow: 0px 0.1em 0.2em rgba(0, 0, 0, 0.3);
+  box-shadow: 0px 0.1em 0.2em rgba(0, 0, 0, 0.3);
+  border-radius: var(--rad);
+  cursor: pointer;
+}
+.toggle input[type='checkbox' i] {
+  display: inline-block;
+  appearance: none;
+  border-radius: 2rem;
+  outline: none;
+  border: none;
+  margin: 0.3em 0 -0.3em 2em;
+  padding-left: 1em;
+}
+
+.toggle .slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: var(--rad);
+  background-color: #ddd;
+  border-top: 0.1em solid var(--color-primary-9);
+  border-bottom: 0.1em solid var(--color-primary-16);
+  -webkit-box-shadow: inset 0px 0.2em 0.6em rgba(0, 0, 0, 0.3);
+  -moz-box-shadow: inset 0px 0.2em 0.6em rgba(0, 0, 0, 0.3);
+  -o-box-shadow: inset 0px 0.2em 0.6em rgba(0, 0, 0, 0.3);
+  -ms-box-shadow: inset 0px 0.2em 0.6em rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0px 0.2em 0.6em rgba(0, 0, 0, 0.3);
+  transition-property: background-color, background-position, border-top-color, border-bottom-color;
+  transition-timing-function: ease-in-out;
+  transition-duration: 0.3s;
+}
+.light.toggle .slider {
+  border-top: 0.1em solid var(--color-primary-10);
+  border-bottom: 0.1em solid var(--color-primary-11);
+}
+.toggle:hover .slider {
+  border-top-color: var(--color-primary-19);
+  border-bottom-color: var(--color-primary-18);
+}
+.toggle .slider::before {
+  /* The knob/circle/handle */
+  content: '';
+  position: absolute;
+  top: calc(var(--height) * 0.06);
+  left: calc(var(--height) * 0.1);
+  width: calc(var(--height) * 0.8);
+  height: calc(var(--height) * 0.8);
+  border-radius: calc(var(--height) / 2);
+  background-color: var(--color-primary-17);
+  -webkit-box-shadow:
+    0px 1px 3px rgba(0, 0, 0, 0.3),
+    inset 0px -0.1em 0.3em rgba(0, 0, 0, 0.7),
+    inset 0px 1px 4px rgba(255, 255, 255, 1);
+  -moz-box-shadow:
+    0px 1px 3px rgba(0, 0, 0, 0.3),
+    inset 0px -0.1em 0.3em rgba(0, 0, 0, 0.7),
+    inset 0px 1px 4px rgba(255, 255, 255, 1);
+  -o-box-shadow:
+    0px 1px 3px rgba(0, 0, 0, 0.3),
+    inset 0px -0.1em 0.3em rgba(0, 0, 0, 0.7),
+    inset 0px 1px 4px rgba(255, 255, 255, 1);
+  -ms-box-shadow:
+    0px 1px 3px rgba(0, 0, 0, 0.3),
+    inset 0px -0.1em 0.3em rgba(0, 0, 0, 0.7),
+    inset 0px 1px 4px rgba(255, 255, 255, 1);
+  box-shadow:
+    0px 1px 3px rgba(0, 0, 0, 0.3),
+    inset 0px -0.1em 0.3em rgba(0, 0, 0, 0.7),
+    inset 0px 1px 4px rgba(255, 255, 255, 1);
+  z-index: 2;
+  outline: 1px solid var(--color-gray-4);
+  outline-offset: -1px;
+}
+.toggle .slider::after {
+  /* Outer rim */
+  content: '';
+  position: absolute;
+  top: -0.25em;
+  left: -0.2em;
+  right: -0.2em;
+  bottom: -0.25em;
+  border-radius: calc(var(--rad) * 1.3);
+  background-color: var(--color-primary-2);
+  -webkit-box-shadow: -0.1em 0px 0.6em -0.2em hsla(var(--hue-primary), 100%, 35%, 0.9);
+  -moz-box-shadow: -0.1em 0px 0.6em -0.2em hsla(var(--hue-primary), 100%, 35%, 0.9);
+  -o-box-shadow: -0.1em 0px 0.6em -0.2em hsla(var(--hue-primary), 100%, 35%, 0.9);
+  -ms-box-shadow: -0.1em 0px 0.6em -0.2em hsla(var(--hue-primary), 100%, 35%, 0.9);
+  box-shadow: -0.1em 0px 0.6em -0.2em hsla(var(--hue-primary), 100%, 35%, 0.9);
+  z-index: -1;
+}
+.toggle .slider::before {
+  transition-property: transform, background-color;
+  transition-timing-function: ease-in-out;
+  transition-duration: 0.3s;
+}
+.light.toggle .slider::before {
+  background-color: var(--color-primary-3);
+}
+.toggle input + .slider::before {
+  background-color: var(--color-primary-19);
+}
+.toggle input:checked + .slider::before {
+  background-color: var(--color-primary-18);
+}
+.toggle input:checked + .slider {
+  background-color: var(--color-primary-7);
+}
+.toggle input:checked + .slider::before {
+  -webkit-transform: translateX(calc(var(--width) - var(--height)));
+  -ms-transform: translateX(calc(var(--width) - var(--height)));
+  -o-transform: translateX(calc(var(--width) - var(--height)));
+  -moz-transform: translateX(calc(var(--width) - var(--height)));
+  transform: translateX(calc(var(--width) - var(--height)));
+}
+.light.toggle input + .slider::before {
+  background-color: var(--color-primary-1);
+}
+.light.toggle input:checked + .slider::before {
+  background-color: var(--color-primary-2);
+}
+
+.toggle .labels {
+  position: absolute;
+  top: calc(calc(var(--height) - 1em) / 2);
+  left: calc(calc(var(--height) - 1em) / 2);
+  right: calc(calc(var(--height) - 1em) / 2);
+  bottom: calc(calc(var(--height) - 1em) / 2);
+  font-family: sans-serif;
+}
+.toggle .labels:not(.hide-on-off) {
+  transition-property: transform, color;
+  transition-timing-function: ease-in-out;
+  transition-duration: 0.3s;
+}
+
+.toggle .labels:not(.hide-on-off)::after {
+  content: attr(data-off);
+  position: absolute;
+  right: 0.1em;
+  color: black;
+  opacity: 1;
+  -webkit-text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+  -moz-text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+  -o-text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+  -ms-text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+  text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.toggle .labels:not(.hide-on-off)::before {
+  content: attr(data-on);
+  position: absolute;
+  left: 0.1em;
+  color: var(--color-primary-19);
+  opacity: 0;
+  -webkit-text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  -moz-text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  -o-text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  -ms-text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+.toggle .labels:not(.hide-on-off)::after,
+.toggle .labels:not(.hide-on-off)::before {
+  top: -0.06em;
+  transition-property: transform, opacity, text-shadow;
+  transition-timing-function: ease-in-out;
+  transition-duration: 0.3s;
+}
+.toggle:hover .labels:not(.hide-on-off)::after,
+.toggle:hover .labels:not(.hide-on-off)::before {
+  -webkit-text-shadow: 1px 1px 2px rgba(0, 0, 0, 0);
+  -moz-text-shadow: 1px 1px 2px rgba(0, 0, 0, 0);
+  -o-text-shadow: 1px 1px 2px rgba(0, 0, 0, 0);
+  -ms-text-shadow: 1px 1px 2px rgba(0, 0, 0, 0);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0);
+}
+.toggle input:checked ~ .labels:not(.hide-on-off)::after {
+  opacity: 0;
+}
+
+.toggle input:checked ~ .labels:not(.hide-on-off)::before {
+  opacity: 1;
+}
+
+.toggle input + .slider {
+  background: linear-gradient(45deg, var(--color-primary-2) 0%, var(--color-primary-7) 20%, var(--color-primary-15) 45%, hsl(var(--hue-tertiary), 100%, 77%) 80%, hsl(var(--hue-tertiary), 100%, 72%) 100%);
+  background-size: auto 180px;
+  background-position: left 0%;
+}
+.toggle.equal input + .slider {
+  background: linear-gradient(45deg, var(--color-primary-2) 0%, var(--color-primary-7) 20%, var(--color-primary-13) 50%, var(--color-primary-19) 100%);
+  background-size: auto 180px;
+  background-position: left 0%;
+}
+.light.toggle input + .slider {
+  background: linear-gradient(45deg, var(--color-primary-15) 0%, var(--color-primary-12) 30%, var(--color-primary-7) 40%, var(--color-primary-2) 60%, hsl(var(--hue-tertiary), 100%, 80%) 82%, hsl(var(--hue-tertiary), 100%, 77%) 100%);
+  background-size: auto 180px;
+  background-position: left 0%;
+}
+.light.toggle.equal input + .slider {
+  background: linear-gradient(45deg, var(--color-primary-14) 0%, var(--color-primary-9) 40%, var(--color-primary-6) 60%, var(--color-primary-2) 100%);
+  background-size: auto 180px;
+  background-position: left 0%;
+}
+.toggle input:checked + .slider,
+.toggle.equal input:checked + .slider {
+  background-position: left 100%;
+}
+.toggle input:hover + .slider,
+.toggle input:hover ~ .labels::before,
+.toggle.equal input:hover + .slider,
+.toggle.equal input:hover ~ .labels::before {
+  color: var(--color-primary-1);
+  background-position: left 50%;
+}
+.light.toggle input ~ .labels::before,
+.light.toggle.equal input ~ .labels::before {
+  color: var(--color-primary-1);
+}
+.light.toggle input:hover + .slider,
+.light.toggle input:hover ~ .labels::before,
+.light.toggle.equal input:hover + .slider,
+.light.toggle.equal input:hover ~ .labels::before {
+  color: var(--color-primary-19);
+  background-position: left 50%;
+}

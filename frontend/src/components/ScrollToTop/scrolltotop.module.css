@@ -1,0 +1,70 @@
+.to-top-btn {
+  position: fixed;
+  bottom: -1em;
+  right: 1em;
+  z-index: 20;
+  border-radius: 50%;
+  outline-offset: -3px;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  opacity: 0;
+  -webkit-animation: bob 2s ease-in-out infinite;
+  -moz-animation: bob 2s ease-in-out infinite;
+  -o-animation: bob 2s ease-in-out infinite;
+  -ms-animation: bob 2s ease-in-out infinite;
+  animation: bob 2s ease-in-out infinite;
+  -webkit-animation-play-state: paused;
+  -moz-animation-play-state: paused;
+  -o-animation-play-state: paused;
+  -ms-animation-play-state: paused;
+  animation-play-state: paused;
+  transition-property: transform, opacity, bottom, background-position, color, outline, border;
+  transition-timing-function: cubic-bezier(0.15, 0, 0.85, 1);
+  transition-duration: 500ms;
+}
+.to-top-btn.show {
+  opacity: 1;
+  bottom: 4em;
+}
+@media (min-width: 220px) {
+  .to-top-btn.show {
+    bottom: 3em;
+  }
+} /*END media*/
+@media (min-width: 300px) {
+  .to-top-btn.show {
+    bottom: 1.5em;
+  }
+} /*END media*/
+.icon {
+  border-radius: 50%;
+  height: 2em;
+  width: 2em;
+  padding: 0.2em;
+}
+.to-top-btn:hover {
+  outline-offset: -3px;
+  -webkit-animation-play-state: running;
+  -moz-animation-play-state: running;
+  -o-animation-play-state: running;
+  -ms-animation-play-state: running;
+  animation-play-state: running;
+}
+@keyframes bob {
+  0%,
+  100% {
+    -webkit-transform: translateY(0px);
+    -ms-transform: translateY(0px);
+    -o-transform: translateY(0px);
+    -moz-transform: translateY(0px);
+    transform: translateY(0px);
+  }
+  50% {
+    -webkit-transform: translateY(-0.5em);
+    -ms-transform: translateY(-0.5em);
+    -o-transform: translateY(-0.5em);
+    -moz-transform: translateY(-0.5em);
+    transform: translateY(-0.5em);
+  }
+}

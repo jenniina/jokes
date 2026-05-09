@@ -1,0 +1,69 @@
+.confirm {
+  position: fixed;
+  z-index: 9999;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--color-shadow-strong);
+  padding: 16px;
+  margin: auto;
+}
+.content {
+  background-color: var(--color-primary-1);
+  border: 2px solid var(--color-primary-20);
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 800px;
+  min-height: 300px;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+#confirm .buttons {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+.confirm .buttons button {
+  cursor: pointer;
+  padding: 0.3em 1em;
+  min-width: max-content;
+}
+.confirm .buttons button svg {
+  font-size: 1.8em;
+}
+#confirm .buttons button.confirm-btn {
+  outline: 3px solid var(--color-primary-20);
+  outline-offset: -4px;
+}
+#confirm .buttons button.confirm-btn:hover {
+  outline-color: var(--color-primary-1);
+  outline-offset: -5px;
+}
+#confirm .buttons .cancel-btn {
+  background: transparent;
+  color: var(--color-primary-20);
+}
+#confirm .buttons .cancel-btn:hover {
+  outline-offset: -5px;
+}
+.confirm .message {
+  margin-top: 0.8em;
+  margin-bottom: 0.4em;
+  font-size: 1.2em;
+}
+@media (min-width: 300px) {
+  #confirm .buttons {
+    flex-flow: row nowrap;
+  }
+}
