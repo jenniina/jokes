@@ -311,7 +311,7 @@ function Jokes() {
           ) {
             await handleDispatch({
               ...joke,
-              private: true,
+              private: false,
               verified: false,
               safe: false,
             })
@@ -319,7 +319,7 @@ function Jokes() {
           } else {
             await handleDispatch({
               ...joke,
-              private: true,
+              private: false,
               verified: false,
               _id: id,
             })

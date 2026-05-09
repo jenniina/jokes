@@ -7,7 +7,7 @@ import {
   useCallback,
   useRef,
 } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTheme, useThemeUpdate } from '../../hooks/useTheme'
 import {
   breakpoint,
@@ -33,7 +33,11 @@ import useExitVisibility from '../../hooks/useExitVisibility'
 import useWindowSize from '../../hooks/useWindowSize'
 import { isTouchDevice } from '../../hooks/useDraggable'
 import { useSelector } from 'react-redux'
-import { logout, logoutAllDevices } from '../../reducers/authReducer'
+import {
+  initializeUser,
+  logout,
+  logoutAllDevices,
+} from '../../reducers/authReducer'
 import JokeIcon from '../Icon/JokeIcon'
 import { useOutsideClick } from '../../hooks/useOutsideClick'
 import { useIsClient, useWindow } from '../../hooks/useSSR'
@@ -56,11 +60,13 @@ const Nav = forwardRef<{ getStyle: () => boolean }>((_props, ref) => {
   })
 
   const location = useLocation()
+  const navigate = useNavigate()
   const lightTheme = useTheme()
   const toggleTheme = useThemeUpdate()
   const { t, language, setLanguage } = useLanguageContext()
 
   const clickOutsideRef = useRef<HTMLDivElement>(null)
+  const handledVerifyJokeId = useRef<string | null>(null)
 
   const closeToolbar = () => {
     if (toolbar.open) {
@@ -80,6 +86,7 @@ const Nav = forwardRef<{ getStyle: () => boolean }>((_props, ref) => {
   const [name, setName] = useState('')
   const [sending, setSending] = useState(false)
   const [verifyingJokeId, setVerifyingJokeId] = useState<string | null>(null)
+  const [authHydrated, setAuthHydrated] = useState(false)
 
   const { windowWidth } = useWindowSize()
   const touchDevice = isTouchDevice()
@@ -90,6 +97,36 @@ const Nav = forwardRef<{ getStyle: () => boolean }>((_props, ref) => {
   useImperativeHandle(ref, () => ({
     getStyle: () => false,
   }))
+
+  useEffect(() => {
+    let cancelled = false
+
+    const hydrateAuth = async () => {
+      if (user) {
+        if (!cancelled) setAuthHydrated(true)
+        return
+      }
+
+      const storedUser = window.localStorage.getItem('loggedJokeAppUser')
+
+      if (!storedUser) {
+        if (!cancelled) setAuthHydrated(true)
+        return
+      }
+
+      try {
+        await dispatch(initializeUser())
+      } finally {
+        if (!cancelled) setAuthHydrated(true)
+      }
+    }
+
+    void hydrateAuth()
+
+    return () => {
+      cancelled = true
+    }
+  }, [dispatch, user])
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -129,78 +166,92 @@ const Nav = forwardRef<{ getStyle: () => boolean }>((_props, ref) => {
 
     params.delete('jokeVerification')
     const nextSearch = params.toString()
-    window.history.replaceState(
-      {},
-      '',
-      `${location.pathname}${nextSearch ? `?${nextSearch}` : ''}${location.hash}`
+    void navigate(
+      `${location.pathname}${nextSearch ? `?${nextSearch}` : ''}${location.hash}`,
+      { replace: true }
     )
-  }, [dispatch, location.hash, location.pathname, location.search, t])
+  }, [dispatch, location.hash, location.pathname, location.search, navigate, t])
 
   const isLoginFormOpen = openForm === 'login'
 
-    useEffect(() => {
-      const params = new URLSearchParams(location.search)
-      const jokeId = params.get('verifyJoke')
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const jokeId = params.get('verifyJoke')
 
-      if (!jokeId) {
-        if (verifyingJokeId !== null) {
-          setVerifyingJokeId(null)
-        }
-        return
+    if (!jokeId) {
+      handledVerifyJokeId.current = null
+      if (verifyingJokeId !== null) {
+        setVerifyingJokeId(null)
+      }
+      return
+    }
+
+    if (handledVerifyJokeId.current === jokeId) {
+      return
+    }
+
+    if (!authHydrated) {
+      return
+    }
+
+    if (!user) {
+      mainMenu.show()
+      toolbar.show()
+      setOpenForm('login')
+
+      if (verifyingJokeId !== jokeId) {
+        setVerifyingJokeId(jokeId)
+        void dispatch(notify(t('PleaseLoginToVerifyJoke'), false, 8))
       }
 
-      if (!user) {
-        mainMenu.show()
-        toolbar.show()
-        setOpenForm('login')
+      return
+    }
 
-        if (verifyingJokeId !== jokeId) {
-          setVerifyingJokeId(jokeId)
-          void dispatch(notify(t('PleaseLoginToVerifyJoke'), false, 8))
-        }
+    if (verifyingJokeId === jokeId) {
+      return
+    }
 
-        return
-      }
+    setVerifyingJokeId(jokeId)
+    handledVerifyJokeId.current = jokeId
 
-      if (verifyingJokeId === jokeId) {
-        return
-      }
-
-      setVerifyingJokeId(jokeId)
-
-      void api
-        .get(`/jokes/${jokeId}/verification`)
-        .then((response) => {
-          void dispatch(
-            notify(response.data?.message ?? t('JokeVerificationSucceeded'), false, 8)
+    void api
+      .get(`/jokes/${jokeId}/verification`)
+      .then((response) => {
+        void dispatch(
+          notify(
+            response.data?.message ?? t('JokeVerificationSucceeded'),
+            false,
+            8
           )
-        })
-        .catch((error: unknown) => {
-          const message = getErrorMessage(error, t('JokeVerificationFailed'))
-          void dispatch(notify(message, true, 8))
-        })
-        .finally(() => {
-          params.delete('verifyJoke')
-          params.delete('login')
-          const nextSearch = params.toString()
-          window.history.replaceState(
-            {},
-            '',
-            `${location.pathname}${nextSearch ? `?${nextSearch}` : ''}${location.hash}`
-          )
-          setVerifyingJokeId(null)
-        })
-    }, [
-      dispatch,
-      location.hash,
-      location.pathname,
-      location.search,
-      mainMenu,
-      toolbar,
-      t,
-      user,
-      verifyingJokeId,
-    ])
+        )
+      })
+      .catch((error: unknown) => {
+        const message = getErrorMessage(error, t('JokeVerificationFailed'))
+        void dispatch(notify(message, true, 8))
+      })
+      .finally(() => {
+        params.delete('verifyJoke')
+        params.delete('login')
+        const nextSearch = params.toString()
+        void navigate(
+          `${location.pathname}${nextSearch ? `?${nextSearch}` : ''}${location.hash}`,
+          { replace: true }
+        )
+        setVerifyingJokeId(null)
+      })
+  }, [
+    dispatch,
+    location.hash,
+    location.pathname,
+    location.search,
+    mainMenu,
+    navigate,
+    toolbar,
+    authHydrated,
+    t,
+    user,
+    verifyingJokeId,
+  ])
   const isRegisterFormOpen = openForm === 'register'
   const isResetFormOpen = openForm === 'reset'
 

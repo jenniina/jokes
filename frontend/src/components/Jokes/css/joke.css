@@ -42,17 +42,17 @@
   border-color: var(--color-primary-8);
   border-radius: calc(var(--border-radius) * 0.8) calc(var(--border-radius) * 0.8) 0 0;
   outline: none;
-  padding: 0.8em 5% 0.5em;
+  padding: 0.5em 0.3em 0.4em;
 }
 .joke-container .saved .local-saved-wrap button.active {
+  padding-top: 0.5em;
+  padding-bottom: 0.6em;
   background-color: var(--color-primary-2);
   -webkit-transform: translateY(2.5px);
   -ms-transform: translateY(2.5px);
   -o-transform: translateY(2.5px);
   -moz-transform: translateY(2.5px);
   transform: translateY(2.5px);
-  padding-top: 0.9em;
-  padding-bottom: 0.6em;
   pointer-events: none;
 }
 .joke-container .saved .local-saved-wrap button:last-child {
@@ -81,6 +81,7 @@
 .joke-container .saved .local-saved-wrap.below button,
 .joke-container .saved .local-saved-wrap.below button:hover,
 .joke-container .saved .local-saved-wrap.below button:focus {
+  padding: 0.4em 0.2em 0.6em;
   border-radius: 0 0 calc(var(--border-radius) * 0.8) calc(var(--border-radius) * 0.8);
   border-bottom: 2px solid var(--color-primary-8);
   border-top: 0;
@@ -90,7 +91,6 @@
   -moz-transform: translateY(-1px);
   transform: translateY(-1px);
   background-color: none;
-  padding: 0.5em 5% 0.8em;
 }
 .joke-container .saved .local-saved-wrap.below button:hover,
 .joke-container .saved .local-saved-wrap.below button:focus {
@@ -102,8 +102,6 @@
   -o-transform: translateY(-2.5px);
   -moz-transform: translateY(-2.5px);
   transform: translateY(-2.5px);
-  padding-bottom: 0.9em;
-  padding-top: 0.6em;
   pointer-events: none;
 }
 .joke-container .saved .local-saved-wrap.below button:last-child.active {
@@ -160,6 +158,20 @@ button#submit-new-joke {
 @media (min-width: 430px) {
   .joke-container .saved .saved-inner {
     border-radius: calc(var(--border-radius) * 0.8);
+  }
+  .joke-container .saved .local-saved-wrap button.active {
+    padding-top: 0.5em;
+    padding-bottom: 0.8em;
+  }
+  .joke-container .saved .local-saved-wrap button,
+  .joke-container .saved .local-saved-wrap button:hover,
+  .joke-container .saved .local-saved-wrap button:focus {
+    padding: 0.4em 0.5em 0.6em;
+  }
+  .joke-container .saved .local-saved-wrap.below button,
+  .joke-container .saved .local-saved-wrap.below button:hover,
+  .joke-container .saved .local-saved-wrap.below button:focus {
+    padding: 0.4em 0.5em 0.6em;
   }
 }
 .joke-container .accordion-container.submit-container {
@@ -280,6 +292,20 @@ form.joke-edit input {
   min-width: 100%;
 }
 @media (min-width: 600px) {
+  .joke-container .saved .local-saved-wrap button.active {
+    padding-top: 0.5em;
+    padding-bottom: 0.7em;
+  }
+  .joke-container .saved .local-saved-wrap button,
+  .joke-container .saved .local-saved-wrap button:hover,
+  .joke-container .saved .local-saved-wrap button:focus {
+    padding: 0.6em 0.8em 0.4em;
+  }
+  .joke-container .saved .local-saved-wrap.below button,
+  .joke-container .saved .local-saved-wrap.below button:hover,
+  .joke-container .saved .local-saved-wrap.below button:focus {
+    padding: 0.4em 0.8em 0.6em;
+  }
   form.joke-edit > div:first-child {
     flex: 0 1 50%;
   }
@@ -471,7 +497,7 @@ section.joke-container > div {
   font-size: 0.8em;
 }
 .userjokeslist li .secondary-wrap > div:first-child {
-  flex: 2 0 auto;
+  flex: 2 1 auto;
 }
 .userjokeslist li .secondary-wrap button.save,
 .userjokeslist li .secondary-wrap button.copy {

@@ -48,6 +48,7 @@ import {
   // getJokesByUsername,
   deleteUserFromJoke,
   verifyJoke,
+  blockJoke,
 } from '../controllers/jokes'
 import { ELanguage, ELanguages } from '../types'
 import { EPleaseProvideAValidEmailAddress } from '../controllers/email'
@@ -152,7 +153,12 @@ router.get(
 )
 router.post('/jokes', addJoke)
 router.put('/jokes/:id', updateJoke)
-router.get('/jokes/:id/verification', [authenticateUser, checkIfAdmin], verifyJoke)
+router.get(
+  '/jokes/:id/verification',
+  [authenticateUser, checkIfAdmin],
+  verifyJoke
+)
+router.put('/jokes/:id/block', [authenticateUser, checkIfAdmin], blockJoke)
 router.get('/jokes', getJokes)
 router.get('/jokes/user/:id/', getJokesByUserId)
 router.delete('/jokes/:id/delete-user/:userId', deleteUserFromJoke)

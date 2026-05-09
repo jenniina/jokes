@@ -112,9 +112,7 @@ const addJoke = async (req: Request, res: Response): Promise<void> => {
       language: body.language,
     }
 
-    const author = body.author
-      ? await User.findOne({ _id: body.author })
-      : null
+    const author = body.author ? await User.findOne({ _id: body.author }) : null
     const shouldAutoVerify =
       body.private === false && isAdminUser(author?.role ?? null)
 
@@ -132,7 +130,7 @@ const addJoke = async (req: Request, res: Response): Promise<void> => {
               private: req.body.private ?? undefined,
               verified: shouldAutoVerify
                 ? true
-                : req.body.verified ?? undefined,
+                : (req.body.verified ?? undefined),
               anonymous: req.body.anonymous ?? undefined,
               author: req.body.author ?? undefined,
               language: body.language,
@@ -152,7 +150,7 @@ const addJoke = async (req: Request, res: Response): Promise<void> => {
               private: req.body.private ?? undefined,
               verified: shouldAutoVerify
                 ? true
-                : req.body.verified ?? undefined,
+                : (req.body.verified ?? undefined),
               anonymous: req.body.anonymous ?? undefined,
               author: req.body.author ?? undefined,
               language: body.language,
@@ -278,7 +276,50 @@ const verifyJoke = async (req: Request, res: Response): Promise<void> => {
 
     res.status(201).json({
       success: true,
-      message: EEmailSent[language],
+      message: EYourJokeHasBeenVerified[language],
+      joke,
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: `An error occurred: ${(error as Error)?.message} ${
+        error as Error
+      }`,
+      error,
+    })
+    console.error('Error:', error)
+  }
+}
+
+const blockJoke = async (req: Request, res: Response): Promise<void> => {
+  enum EJokeBlocked {
+    en = 'Joke blocked',
+    es = 'Broma bloqueada',
+    fr = 'Blague bloquée',
+    de = 'Witz blockiert',
+    pt = 'Piada bloqueada',
+    cs = 'Vtip byl zablokován',
+    fi = 'Vitsi estetty',
+  }
+
+  try {
+    const joke: IJoke | null = await Joke.findOneAndUpdate(
+      { _id: req.params.id },
+      { private: true, verified: false },
+      { new: true }
+    )
+
+    if (!joke) {
+      res.status(404).json({
+        success: false,
+        message: 'Joke not found',
+      })
+      return
+    }
+
+    res.status(200).json({
+      success: true,
+      message: EJokeBlocked[(joke.language as ELanguage) ?? 'en'],
       joke,
     })
   } catch (error) {
@@ -322,6 +363,12 @@ const updateJoke = async (req: Request, res: Response): Promise<void> => {
         return
       }
 
+      const updatedJoke: IJoke | null = await Joke.findOneAndUpdate(
+        { _id: body._id },
+        { ...updateFields, verified: false },
+        { upsert: false, new: true }
+      )
+
       const subject = 'A joke needs verification'
       const message = `${author?.username}: ${author?.name}: ${body.user}, ${
         body.jokeId
@@ -334,7 +381,7 @@ const updateJoke = async (req: Request, res: Response): Promise<void> => {
         body.type === EJokeType.twopart && body.setup ? body.setup : ''
       }, ${
         body.type === EJokeType.twopart && body.delivery ? body.delivery : ''
-      }, ${body.type === EJokeType.single && body.body ? body.body : ''}`
+      }, ${body.type === EJokeType.single && body.joke ? body.joke : ''}`
       const adminEmail = process.env.NODEMAILER_USER || ''
       const link = `${process.env.SITE_URL}?verifyJoke=${findJoke._id}`
 
@@ -347,7 +394,7 @@ const updateJoke = async (req: Request, res: Response): Promise<void> => {
             EEmailSentToAdministratorPleaseWaitForApproval[
               body.language as keyof typeof EEmailSentToAdministratorPleaseWaitForApproval
             ],
-          body,
+          joke: updatedJoke,
         })
       } catch (error) {
         console.error(EErrorSendingMail[body.language as ELanguage], error)
@@ -355,6 +402,7 @@ const updateJoke = async (req: Request, res: Response): Promise<void> => {
           success: false,
           message:
             EErrorSendingMail[body.language as keyof typeof EErrorSendingMail],
+          joke: updatedJoke,
           error,
         })
       }
@@ -519,4 +567,5 @@ export {
   getJokesByUserAndSafe,
   deleteUserFromJoke,
   verifyJoke,
+  blockJoke,
 }

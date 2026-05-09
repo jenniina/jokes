@@ -37,6 +37,7 @@ import usersService from '../../../services/users'
 import { TPublicUserNamesMap } from '../../../types'
 import Icon from '../../Icon/Icon'
 import CopyToClipboard from '../../CopyToClipboard/CopyToClipboard'
+import Unverified from './Unverified'
 
 interface Props {
   user: IUser | undefined
@@ -199,6 +200,8 @@ const UserJokes = ({
   const [filteredJokes, setFilteredJokes] = useState<IJokeVisible[]>(userJokes)
   const [showBlacklistedJokes, setShowBlacklistedJokes] =
     useState<boolean>(false)
+  const [showUnverifiedJokes, setShowUnverifiedJokes] =
+    useState<boolean>(false)
   const [fetchedJokes, setFetchedJokes] = useState<IJoke[]>([])
   const [isRandom, setIsRandom] = useState<boolean>(false)
   const [randomTrigger, setRandomTrigger] = useState<number>(0)
@@ -228,6 +231,7 @@ const UserJokes = ({
   const [hasLoadedJokes, setHasLoadedJokes] = useState(false)
 
   const dispatch = useAppDispatch()
+  const isAdmin = (user?.role ?? 0) > 2
 
   const handleUserJokes = useCallback(
     () => {
@@ -721,8 +725,15 @@ const UserJokes = ({
   useEffect(() => {
     if (!userId) {
       setShowBlacklistedJokes(false)
+      setShowUnverifiedJokes(false)
     }
   }, [userId])
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setShowUnverifiedJokes(false)
+    }
+  }, [isAdmin])
 
   const [currentPage, setCurrentPage] = useState<number>(1)
   const [itemsPerPage, setItemsPerPage] = useState<number>(10)
@@ -904,376 +915,402 @@ const UserJokes = ({
         <div className="local-saved-wrap">
           <button
             className={`btn${
-              localJokes && !showBlacklistedJokes ? ' active' : ''
+              localJokes && !showBlacklistedJokes && !showUnverifiedJokes
+                ? ' active'
+                : ''
             }`}
             onClick={() => {
               setLocalJokes(true)
               setShowBlacklistedJokes(false)
+              setShowUnverifiedJokes(false)
             }}
           >
             {!localJokes ? t('SeeLocalJokes') : t('LocalJokes')}
           </button>
           <button
             className={`btn${
-              !localJokes && !showBlacklistedJokes ? ' active' : ''
+              !localJokes && !showBlacklistedJokes && !showUnverifiedJokes
+                ? ' active'
+                : ''
             }`}
             onClick={() => {
               setLocalJokes(false)
               setShowBlacklistedJokes(false)
+              setShowUnverifiedJokes(false)
             }}
           >
             {t('YourSavedJokes')}
           </button>
+          {isAdmin && (
+            <button
+              className={`btn${showUnverifiedJokes ? ' active' : ''}`}
+              onClick={() => {
+                setShowUnverifiedJokes(true)
+                setShowBlacklistedJokes(false)
+              }}
+            >
+              {t('UnverifiedJokes')}
+            </button>
+          )}
         </div>
       )}
       <div className="saved-inner">
         <div className="filler"></div>
         <div>
-          {!showBlacklistedJokes && (
+          {showUnverifiedJokes ? (
+            <Unverified
+              user={user}
+              getCategoryInLanguage={getCategoryInLanguage}
+            />
+          ) : (
             <>
-              <h2>{localJokes ? t('LocalJokes') : t('YourSavedJokes')}</h2>
-              {localJokes && (
-                <p className="mb3 flex center textcenter">
-                  {' '}
-                  {t('UserSubmittedJokes')}
-                </p>
-              )}
+              {!showBlacklistedJokes && (
+                <>
+                  <h2>{localJokes ? t('LocalJokes') : t('YourSavedJokes')}</h2>
+                  {localJokes && (
+                    <p className="mb3 flex center textcenter">
+                      {' '}
+                      {t('UserSubmittedJokes')}
+                    </p>
+                  )}
 
-              <div className="toggle-wrap">
-                <div className="toggle-inner-wrap">
-                  <div className="safemode-wrap">
-                    <ButtonToggle
-                      isChecked={isCheckedSafemode}
-                      name="safemode"
-                      id="safemode2"
-                      className={`${language} ${
-                        !isCheckedSafemode ? 'unsafe' : ''
-                      } userjokes safemode`}
-                      label={`${t('Filter')}: `}
-                      hideLabel={false}
-                      on={t('SafeTitle')}
-                      off={t('UnsafeTitle')}
-                      onChange={handleToggleChangeSafemode}
-                    />
-                    {sortBy === ESortBy_en.age && (
-                      <ButtonToggle
-                        isChecked={isCheckedNewest}
-                        name="age"
-                        id="age"
-                        className={`${language} age`}
-                        label={`${t('Age')}: `}
-                        hideLabel={false}
-                        on={t('Newest')}
-                        off={t('Oldest')}
-                        onChange={() => {
-                          handleToggleChangeNewest()
-                        }}
-                        equal={true}
-                      />
-                    )}
-                  </div>
-                  <div className="sortby-wrap">
-                    <Select
-                      language={language}
-                      id="sortby"
-                      className="sortby"
-                      z={6}
-                      instructions={`${t('OrderBy')}:`}
-                      options={optionsSortBy(ESortBy)}
-                      value={
-                        {
-                          label: ESortBy[sortBy][ELanguages[language]],
-                          value: ESortBy[sortBy][ELanguages[language]],
-                        } as SelectOption
-                      }
-                      onChange={(o: SelectOption | undefined) => {
-                        setSortBy(o?.value as ESortBy_en)
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="toggle-inner-wrap">
-                  <div>
-                    <Select
-                      language={language}
-                      id="joke-languages"
-                      className="language-filter"
-                      z={5}
-                      instructions={`${t('FilterByLanguage')}:`}
-                      options={[
-                        { label: t('All'), value: '' },
-                        ...Array.from(
-                          new Set(userJokes?.map((joke) => joke.language))
-                        ).map((langCode) => {
-                          return {
-                            label: getLanguageLabel(langCode),
-                            value: langCode,
-                          }
-                        }),
-                      ]}
-                      value={
-                        selectedLanguage
-                          ? ({
-                              label: getLanguageLabel(selectedLanguage),
-                              value: selectedLanguage,
-                            } as SelectOption)
-                          : { label: t('All'), value: '' }
-                      }
-                      onChange={(o: SelectOption | undefined) => {
-                        setSelectedLanguage(o?.value as ELanguages)
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <Select
-                      language={language}
-                      id="single-category-select"
-                      className="single-category-select"
-                      z={4}
-                      instructions={`${t('FilterByCategory')}:`}
-                      options={[
-                        { label: t('SelectACategory'), value: '' },
-                        ...(Object.values(ECategories).map((category) => {
-                          return {
-                            label: getCategoryInLanguage(category, language),
-                            value: category,
-                          }
-                        }) as SelectOption[]),
-                      ]}
-                      value={
-                        selectedCategory
-                          ? ({
-                              label: getCategoryInLanguage(
-                                selectedCategory as ECategories,
-                                language
-                              ),
-                              value: selectedCategory,
-                            } as SelectOption)
-                          : { label: t('SelectACategory'), value: '' }
-                      }
-                      onChange={(o) => {
-                        setSelectedCategory((o?.value as ECategories) ?? '')
-                        if (o) handleSelectChange(o)
-                        handleCategoryChange(String(o?.value ?? ''))
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="toggle-inner-wrap">
-                  <div>
-                    <Select
-                      language={language}
-                      id="userNorrisCategories"
-                      className={`category extras ${hasNorris ? '' : 'hidden'}`}
-                      z={3}
-                      instructions={`${t('FilterFurther')}:`}
-                      selectAnOption={norrisOptions[0].label}
-                      value={selectedNorrisCategory}
-                      options={norrisOptions}
-                      onChange={(o) => {
-                        setSelectedNorrisCategory(o)
-                      }}
-                    />
-                  </div>
-                  <div
-                    className={
-                      hasNorris ? 'search-jokes-wrap' : 'full search-jokes-wrap'
-                    }
-                  >
-                    <div className="search-jokes input-wrap">
-                      <label htmlFor="search-jokes">
-                        <input
-                          type="text"
-                          id="search-jokes"
-                          value={searchTerm}
-                          onChange={handleSearchChange}
-                          placeholder={t('Search')}
+                  <div className="toggle-wrap">
+                    <div className="toggle-inner-wrap">
+                      <div className="safemode-wrap">
+                        <ButtonToggle
+                          isChecked={isCheckedSafemode}
+                          name="safemode"
+                          id="safemode2"
+                          className={`${language} ${
+                            !isCheckedSafemode ? 'unsafe' : ''
+                          } userjokes safemode`}
+                          label={`${t('Filter')}: `}
+                          hideLabel={false}
+                          on={t('SafeTitle')}
+                          off={t('UnsafeTitle')}
+                          onChange={handleToggleChangeSafemode}
                         />
-                        <span>{t('SearchByKeyword')}</span>
-                      </label>
+                        {sortBy === ESortBy_en.age && (
+                          <ButtonToggle
+                            isChecked={isCheckedNewest}
+                            name="age"
+                            id="age"
+                            className={`${language} age`}
+                            label={`${t('Age')}: `}
+                            hideLabel={false}
+                            on={t('Newest')}
+                            off={t('Oldest')}
+                            onChange={() => {
+                              handleToggleChangeNewest()
+                            }}
+                            equal={true}
+                          />
+                        )}
+                      </div>
+                      <div className="sortby-wrap">
+                        <Select
+                          language={language}
+                          id="sortby"
+                          className="sortby"
+                          z={6}
+                          instructions={`${t('OrderBy')}:`}
+                          options={optionsSortBy(ESortBy)}
+                          value={
+                            {
+                              label: ESortBy[sortBy][ELanguages[language]],
+                              value: ESortBy[sortBy][ELanguages[language]],
+                            } as SelectOption
+                          }
+                          onChange={(o: SelectOption | undefined) => {
+                            setSortBy(o?.value as ESortBy_en)
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="toggle-inner-wrap">
+                      <div>
+                        <Select
+                          language={language}
+                          id="joke-languages"
+                          className="language-filter"
+                          z={5}
+                          instructions={`${t('FilterByLanguage')}:`}
+                          options={[
+                            { label: t('All'), value: '' },
+                            ...Array.from(
+                              new Set(userJokes?.map((joke) => joke.language))
+                            ).map((langCode) => {
+                              return {
+                                label: getLanguageLabel(langCode),
+                                value: langCode,
+                              }
+                            }),
+                          ]}
+                          value={
+                            selectedLanguage
+                              ? ({
+                                  label: getLanguageLabel(selectedLanguage),
+                                  value: selectedLanguage,
+                                } as SelectOption)
+                              : { label: t('All'), value: '' }
+                          }
+                          onChange={(o: SelectOption | undefined) => {
+                            setSelectedLanguage(o?.value as ELanguages)
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <Select
+                          language={language}
+                          id="single-category-select"
+                          className="single-category-select"
+                          z={4}
+                          instructions={`${t('FilterByCategory')}:`}
+                          options={[
+                            { label: t('SelectACategory'), value: '' },
+                            ...(Object.values(ECategories).map((category) => {
+                              return {
+                                label: getCategoryInLanguage(category, language),
+                                value: category,
+                              }
+                            }) as SelectOption[]),
+                          ]}
+                          value={
+                            selectedCategory
+                              ? ({
+                                  label: getCategoryInLanguage(
+                                    selectedCategory as ECategories,
+                                    language
+                                  ),
+                                  value: selectedCategory,
+                                } as SelectOption)
+                              : { label: t('SelectACategory'), value: '' }
+                          }
+                          onChange={(o) => {
+                            setSelectedCategory((o?.value as ECategories) ?? '')
+                            if (o) handleSelectChange(o)
+                            handleCategoryChange(String(o?.value ?? ''))
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="toggle-inner-wrap">
+                      <div>
+                        <Select
+                          language={language}
+                          id="userNorrisCategories"
+                          className={`category extras ${hasNorris ? '' : 'hidden'}`}
+                          z={3}
+                          instructions={`${t('FilterFurther')}:`}
+                          selectAnOption={norrisOptions[0].label}
+                          value={selectedNorrisCategory}
+                          options={norrisOptions}
+                          onChange={(o) => {
+                            setSelectedNorrisCategory(o)
+                          }}
+                        />
+                      </div>
+                      <div
+                        className={
+                          hasNorris
+                            ? 'search-jokes-wrap'
+                            : 'full search-jokes-wrap'
+                        }
+                      >
+                        <div className="search-jokes input-wrap">
+                          <label htmlFor="search-jokes">
+                            <input
+                              type="text"
+                              id="search-jokes"
+                              value={searchTerm}
+                              onChange={handleSearchChange}
+                              placeholder={t('Search')}
+                            />
+                            <span>{t('SearchByKeyword')}</span>
+                          </label>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              <div className="reset-btn-wrap mb3">
-                <button
-                  className="reset-btn delete danger"
-                  onClick={() => resetFilters()}
-                >
-                  <Icon lib="md" name="MdOutlineSettingsBackupRestore" />{' '}
-                  <span>{t('Reset')}</span>
-                </button>
-              </div>
-            </>
-          )}
-          <div className="button-wrap">
-            {!showBlacklistedJokes && (
-              <>
-                <button
-                  className={`icontext random-btn ${isRandom ? 'active' : ''}`}
-                  onClick={() => {
-                    setCurrentPage(1)
-                    setShowBlacklistedJokes(false)
-                    setIsRandom(true)
-                    setRandomTrigger((prev) => prev + 1)
-                    setLatest(false)
-                  }}
-                >
-                  {t('Random')} <Icon lib="fa" name="FaRandom" />
-                </button>{' '}
-                <button
-                  className={`icontext all-or-latest-btn ${
-                    !isRandom && !latest ? 'active' : ''
-                  }`}
-                  onClick={() => {
-                    setIsRandom(false)
-                    setShowBlacklistedJokes(false)
-                    setLatest(false)
-                  }}
-                >
-                  {t('AllJokes')} <Icon lib="fa" name="FaList" />
-                </button>
-                <div className="flex center">
+                  <div className="reset-btn-wrap mb3">
+                    <button
+                      className="reset-btn delete danger"
+                      onClick={() => resetFilters()}
+                    >
+                      <Icon lib="md" name="MdOutlineSettingsBackupRestore" />{' '}
+                      <span>{t('Reset')}</span>
+                    </button>
+                  </div>
+                </>
+              )}
+              <div className="button-wrap">
+                {!showBlacklistedJokes && (
+                  <>
+                    <button
+                      className={`icontext random-btn ${isRandom ? 'active' : ''}`}
+                      onClick={() => {
+                        setCurrentPage(1)
+                        setShowBlacklistedJokes(false)
+                        setIsRandom(true)
+                        setRandomTrigger((prev) => prev + 1)
+                        setLatest(false)
+                      }}
+                    >
+                      {t('Random')} <Icon lib="fa" name="FaRandom" />
+                    </button>{' '}
+                    <button
+                      className={`icontext all-or-latest-btn ${
+                        !isRandom && !latest ? 'active' : ''
+                      }`}
+                      onClick={() => {
+                        setIsRandom(false)
+                        setShowBlacklistedJokes(false)
+                        setLatest(false)
+                      }}
+                    >
+                      {t('AllJokes')} <Icon lib="fa" name="FaList" />
+                    </button>
+                    <div className="flex center">
+                      <button
+                        className={`icontext all-or-latest-btn ${
+                          latest ? 'active' : ''
+                        }`}
+                        onClick={() => {
+                          setIsRandom(false)
+                          setShowBlacklistedJokes(false)
+                          setSortByAge(EOrderByAge.newest)
+                          setSortBy(ESortBy_en.age)
+                          setLatest(true)
+                        }}
+                      >
+                        {t('Latest')}
+                        <span className="scr">{latestNumber}</span>{' '}
+                        {latestNumber === 3 && (
+                          <Icon lib="md" name="MdOutlineFilter3" />
+                        )}
+                        {latestNumber === 4 && (
+                          <Icon lib="md" name="MdOutlineFilter4" />
+                        )}
+                        {latestNumber === 5 && (
+                          <Icon lib="md" name="MdOutlineFilter5" />
+                        )}
+                        {latestNumber === 6 && (
+                          <Icon lib="md" name="MdOutlineFilter6" />
+                        )}
+                        {latestNumber === 7 && (
+                          <Icon lib="md" name="MdOutlineFilter7" />
+                        )}
+                        {latestNumber === 8 && (
+                          <Icon lib="md" name="MdOutlineFilter8" />
+                        )}
+                        {latestNumber === 9 && (
+                          <Icon lib="md" name="MdOutlineFilter9" />
+                        )}
+                        {latestNumber > 9 && (
+                          <Icon lib="md" name="MdOutlineFilter9Plus" />
+                        )}
+                      </button>
+                      <div>
+                        <input
+                          type="number"
+                          min={3}
+                          max={100}
+                          id="number-of-latest"
+                          defaultValue={latestNumber}
+                          className="narrow"
+                          onChange={(e) => {
+                            setLatestNumber(e.target.valueAsNumber)
+                          }}
+                        />
+                        <label htmlFor="number-of-latest" className="scr">
+                          <span>{t('HowMany')}</span>
+                        </label>
+                      </div>
+                    </div>
+                  </>
+                )}
+                {user && (
                   <button
-                    className={`icontext all-or-latest-btn ${
-                      latest ? 'active' : ''
+                    className={`blocked-btn danger ${
+                      showBlacklistedJokes ? 'active' : ''
                     }`}
-                    onClick={() => {
-                      setIsRandom(false)
-                      setShowBlacklistedJokes(false)
-                      setSortByAge(EOrderByAge.newest)
-                      setSortBy(ESortBy_en.age)
-                      setLatest(true)
-                    }}
+                    onClick={() => setShowBlacklistedJokes((prev) => !prev)}
                   >
-                    {t('Latest')}
-                    <span className="scr">{latestNumber}</span>{' '}
-                    {latestNumber === 3 && (
-                      <Icon lib="md" name="MdOutlineFilter3" />
-                    )}
-                    {latestNumber === 4 && (
-                      <Icon lib="md" name="MdOutlineFilter4" />
-                    )}
-                    {latestNumber === 5 && (
-                      <Icon lib="md" name="MdOutlineFilter5" />
-                    )}
-                    {latestNumber === 6 && (
-                      <Icon lib="md" name="MdOutlineFilter6" />
-                    )}
-                    {latestNumber === 7 && (
-                      <Icon lib="md" name="MdOutlineFilter7" />
-                    )}
-                    {latestNumber === 8 && (
-                      <Icon lib="md" name="MdOutlineFilter8" />
-                    )}
-                    {latestNumber === 9 && (
-                      <Icon lib="md" name="MdOutlineFilter9" />
-                    )}
-                    {latestNumber > 9 && (
-                      <Icon lib="md" name="MdOutlineFilter9Plus" />
+                    {showBlacklistedJokes ? (
+                      <>
+                        {t('HideBlockedJokes')} <Icon lib="im" name="ImBlocked" />
+                      </>
+                    ) : (
+                      <>
+                        {t('Blocked')} <Icon lib="im" name="ImEyeBlocked" />
+                      </>
                     )}
                   </button>
-                  <div>
-                    <input
-                      type="number"
-                      min={3}
-                      max={100}
-                      id="number-of-latest"
-                      defaultValue={latestNumber}
-                      className="narrow"
-                      onChange={(e) => {
-                        setLatestNumber(e.target.valueAsNumber)
-                      }}
-                    />
-                    <label htmlFor="number-of-latest" className="scr">
-                      <span>{t('HowMany')}</span>
+                )}
+              </div>
+
+              {!isRandom && !showBlacklistedJokes && pagination(1)}
+
+              {/* Pagination scroll anchor (always present) */}
+              <div ref={localStart} />
+
+              {user && showBlacklistedJokes && filteredFetchedJokes?.length > 0 ? (
+                <div className="blocked-controls-wrap">
+                  <div className="input-wrap search-blacklist">
+                    <label htmlFor="searchBlacklistedJokes">
+                      <input
+                        id="searchBlacklistedJokes"
+                        type="text"
+                        onChange={handleSearchChange}
+                      />
+                      <span>{t('SearchByKeyword')}</span>
                     </label>
                   </div>
                 </div>
-              </>
-            )}
-            {user && (
-              <button
-                className={`blocked-btn danger ${
-                  showBlacklistedJokes ? 'active' : ''
+              ) : showBlacklistedJokes ? (
+                <p className="textcenter">{t('NoJokesYet')}</p>
+              ) : (
+                ''
+              )}
+
+              <ul
+                className={`userjokeslist ${
+                  showBlacklistedJokes ? 'blockedJokes' : ''
                 }`}
-                onClick={() => setShowBlacklistedJokes((prev) => !prev)}
               >
-                {showBlacklistedJokes ? (
-                  <>
-                    {t('HideBlockedJokes')} <Icon lib="im" name="ImBlocked" />
-                  </>
-                ) : (
-                  <>
-                    {t('Blocked')} <Icon lib="im" name="ImEyeBlocked" />
-                  </>
-                )}
-              </button>
-            )}
-          </div>
-
-          {!isRandom && !showBlacklistedJokes && pagination(1)}
-
-          {/* Pagination scroll anchor (always present) */}
-          <div ref={localStart} />
-
-          {user && showBlacklistedJokes && filteredFetchedJokes?.length > 0 ? (
-            <div className="blocked-controls-wrap">
-              <div className="input-wrap search-blacklist">
-                <label htmlFor="searchBlacklistedJokes">
-                  <input
-                    id="searchBlacklistedJokes"
-                    type="text"
-                    onChange={handleSearchChange}
-                  />
-                  <span>{t('SearchByKeyword')}</span>
-                </label>
-              </div>
-            </div>
-          ) : showBlacklistedJokes ? (
-            <p className="textcenter">{t('NoJokesYet')}</p>
-          ) : (
-            ''
-          )}
-
-          <ul
-            className={`userjokeslist ${
-              showBlacklistedJokes ? 'blockedJokes' : ''
-            }`}
-          >
-            {user && showBlacklistedJokes ? (
-              filteredFetchedJokes?.map((joke, index) => (
-                <li key={user?.blacklistedJokes?.[index]?.jokeId ?? index}>
-                  <form
-                    onSubmit={(e) => {
-                      void dispatch(saveMostRecentJoke(joke))
-                      void handleRemoveJokeFromBlacklisted(
-                        e,
-                        joke,
-                        user?.blacklistedJokes?.[index]?._id
-                      )
-                    }}
-                  >
-                    <button className="" type="submit" disabled={sending}>
-                      {t('Restore')}
-                    </button>
-                  </form>
-                  {joke ? (
-                    joke.type === EJokeType.single ? (
-                      <p>{joke.joke}</p>
-                    ) : (
-                      <div>
-                        <p>{joke.setup}</p>
-                        <p>{joke.delivery}</p>
-                      </div>
-                    )
-                  ) : (
-                    ``
-                  )}
-                </li>
-              ))
-            ) : currentItems && currentItems?.length > 0 ? (
+                {user && showBlacklistedJokes ? (
+                  filteredFetchedJokes?.map((joke, index) => (
+                    <li key={user?.blacklistedJokes?.[index]?.jokeId ?? index}>
+                      <form
+                        onSubmit={(e) => {
+                          void dispatch(saveMostRecentJoke(joke))
+                          void handleRemoveJokeFromBlacklisted(
+                            e,
+                            joke,
+                            user?.blacklistedJokes?.[index]?._id
+                          )
+                        }}
+                      >
+                        <button className="" type="submit" disabled={sending}>
+                          {t('Restore')}
+                        </button>
+                      </form>
+                      {joke ? (
+                        joke.type === EJokeType.single ? (
+                          <p>{joke.joke}</p>
+                        ) : (
+                          <div>
+                            <p>{joke.setup}</p>
+                            <p>{joke.delivery}</p>
+                          </div>
+                        )
+                      ) : (
+                        ``
+                      )}
+                    </li>
+                  ))
+                ) : currentItems && currentItems?.length > 0 ? (
               currentItems?.map((joke: IJokeVisible) => {
                 const { ...restOfJoke } = joke
                 return (
@@ -1456,9 +1493,10 @@ const UserJokes = ({
                               isOpen={editId === joke.jokeId}
                             >
                               <form
-                                onSubmit={() =>
-                                  void handleUpdate(joke?._id, newJoke ?? joke)
-                                }
+                                onSubmit={handleUpdate(
+                                  joke?._id,
+                                  newJoke ?? joke
+                                )}
                                 className="joke-edit"
                               >
                                 <div className="edit-wrap">
@@ -1792,8 +1830,10 @@ const UserJokes = ({
                 <br />({t('ThisMayTakeUpToAMinute')})
               </li>
             )}
-          </ul>
-          {!isRandom && !showBlacklistedJokes && pagination(2)}
+            </ul>
+            </>
+          )}
+          {!showUnverifiedJokes && !isRandom && !showBlacklistedJokes && pagination(2)}
         </div>
         <div className="filler below"></div>
       </div>
@@ -1801,26 +1841,43 @@ const UserJokes = ({
         <div className="local-saved-wrap below">
           <button
             className={`btn${
-              localJokes && !showBlacklistedJokes ? ' active' : ''
+              localJokes && !showBlacklistedJokes && !showUnverifiedJokes
+                ? ' active'
+                : ''
             }`}
             onClick={() => {
               setLocalJokes(true)
               setShowBlacklistedJokes(false)
+              setShowUnverifiedJokes(false)
             }}
           >
             {!localJokes ? t('SeeLocalJokes') : t('LocalJokes')}
           </button>
           <button
             className={`btn${
-              !localJokes && !showBlacklistedJokes ? ' active' : ''
+              !localJokes && !showBlacklistedJokes && !showUnverifiedJokes
+                ? ' active'
+                : ''
             }`}
             onClick={() => {
               setLocalJokes(false)
               setShowBlacklistedJokes(false)
+              setShowUnverifiedJokes(false)
             }}
           >
             {t('YourSavedJokes')}
           </button>
+          {isAdmin && (
+            <button
+              className={`btn${showUnverifiedJokes ? ' active' : ''}`}
+              onClick={() => {
+                setShowUnverifiedJokes(true)
+                setShowBlacklistedJokes(false)
+              }}
+            >
+              {t('UnverifiedJokes')}
+            </button>
+          )}
         </div>
       )}
     </div>
