@@ -100,6 +100,34 @@ const Nav = forwardRef<{ getStyle: () => boolean }>((_props, ref) => {
     }
   }, [location.search])
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const jokeVerification = params.get('jokeVerification')
+
+    if (!jokeVerification) {
+      return
+    }
+
+    const notificationMessage =
+      jokeVerification === 'success'
+        ? t('JokeVerificationSucceeded')
+        : jokeVerification === 'not-found'
+          ? t('JokeVerificationNotFound')
+          : t('JokeVerificationFailed')
+
+    void dispatch(
+      notify(notificationMessage, jokeVerification !== 'success', 8)
+    )
+
+    params.delete('jokeVerification')
+    const nextSearch = params.toString()
+    window.history.replaceState(
+      {},
+      '',
+      `${location.pathname}${nextSearch ? `?${nextSearch}` : ''}${location.hash}`
+    )
+  }, [dispatch, location.hash, location.pathname, location.search, t])
+
   const isLoginFormOpen = openForm === 'login'
   const isRegisterFormOpen = openForm === 'register'
   const isResetFormOpen = openForm === 'reset'

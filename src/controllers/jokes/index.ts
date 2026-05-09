@@ -103,53 +103,6 @@ const addJoke = async (req: Request, res: Response): Promise<void> => {
       | 'author'
     >
 
-    // let joke: IJoke
-
-    // // Check if a joke already exists
-    // const existingJoke = await (body &&
-    //   Joke.findOne({
-    //     jokeId: body.jokeId,
-    //     type: body.type,
-    //     category: body.category,
-    //     language: body.language,
-    //   }))
-
-    // if (existingJoke) {
-    //   // Check if the user ID already exists in the user array
-    //   if (!existingJoke.user.includes(req.body.user)) {
-    //     existingJoke.user.push(req.body.user[0])
-    //     await existingJoke.save()
-    //   }
-    //   joke = mapToJoke(existingJoke)
-    // } else {
-    //   if (req.body.type === EJokeType.single) {
-    //     const savedJoke = await new Joke({
-    //       jokeId: body.jokeId,
-    //       joke: req.body.joke,
-    //       category: body.category,
-    //       type: body.type,
-    //       safe: req.body.safe,
-    //       user: body.user,
-    //       language: body.language,
-    //     }).save()
-
-    //     joke = mapToJoke(savedJoke)
-    //   } else {
-    //     const savedJoke = await new Joke({
-    //       jokeId: body.jokeId,
-    //       setup: req.body.setup,
-    //       delivery: req.body.delivery,
-    //       category: body.category,
-    //       type: body.type,
-    //       safe: req.body.safe,
-    //       user: body.user,
-    //       language: body.language,
-    //     }).save()
-
-    //     joke = mapToJoke(savedJoke)
-    //   }
-    // }
-
     const filter = {
       jokeId: body.jokeId.toString(),
       type: body.type,
@@ -221,8 +174,7 @@ const addJoke = async (req: Request, res: Response): Promise<void> => {
       const language = (joke.language as ELanguage) ?? 'en'
 
       try {
-        const mailResponse = await sendMail(subject, message, adminEmail, link)
-        // console.log(EEmailSent[joke.language as ELanguage], mailResponse)
+        await sendMail(subject, message, adminEmail, link)
         res.status(201).json({
           success: true,
           message:
@@ -240,63 +192,7 @@ const addJoke = async (req: Request, res: Response): Promise<void> => {
           error,
         })
       }
-      // sendMail(subject, message, adminEmail, language, link)
-      //   .then((response) => {
-      //     console.log(EEmailSent[joke.language as ELanguage], response)
-      //     res.status(201).json({
-      //       success: true,
-      //       message:
-      //         EEmailSentToAdministratorPleaseWaitForApproval[
-      //           joke.language as keyof typeof EEmailSentToAdministratorPleaseWaitForApproval
-      //         ],
-      //       joke,
-      //     })
-      //   })
-      //   .catch((error) => {
-      //     console.error(EErrorSendingMail[joke.language as ELanguage], error)
-      //     res.status(500).json({
-      //       success: false,
-      //       message: EErrorSendingMail[joke.language as keyof typeof EErrorSendingMail],
-      //       error,
-      //     })
-      //   })
-    }
-
-    // const existingJoke = await Joke.findOne(filter)
-
-    // let joke
-
-    // if (existingJoke) {
-    //   // If the joke exists, update the user array
-    //   existingJoke.user = [...new Set([...existingJoke.user, ...body.user])]
-    //   joke = await existingJoke.save()
-    // } else {
-    //   // If the joke doesn't exist, create a new joke
-    //   const jokeData =
-    //     req.body.type === EJokeType.single
-    //       ? {
-    //           jokeId: body.jokeId,
-    //           joke: req.body.joke,
-    //           category: body.category,
-    //           type: body.type,
-    //           safe: req.body.safe,
-    //           user: body.user,
-    //           language: body.language,
-    //         }
-    //       : {
-    //           jokeId: body.jokeId,
-    //           setup: req.body.setup,
-    //           delivery: req.body.delivery,
-    //           category: body.category,
-    //           type: body.type,
-    //           safe: req.body.safe,
-    //           user: body.user,
-    //           language: body.language,
-    //         }
-
-    //   joke = await new Joke(jokeData).save()
-    // }
-    else {
+    } else {
       res.status(201).json({
         success: true,
         message: EJokeAdded[joke.language as ELanguage],
@@ -325,11 +221,40 @@ const verifyJoke = async (req: Request, res: Response): Promise<void> => {
     cs = 'Váš vtip byl ověřen',
     fi = 'Vitsisi on vahvistettu',
   }
+
+  enum EVerificationStatus {
+    success = 'success',
+    notFound = 'not-found',
+    error = 'error',
+  }
+
+  const jokesAppUrl = `${process.env.SITE_URL}`
+  const acceptsHtml = req.accepts(['html', 'json']) === 'html'
+  const redirectToVerificationResult = (status: EVerificationStatus) => {
+    const params = new URLSearchParams({ jokeVerification: status })
+    res.redirect(303, `${jokesAppUrl}?${params.toString()}`)
+  }
+
   try {
     const joke: IJoke | null = await Joke.findOneAndUpdate(
       { _id: req.params.id },
-      { verified: true, private: false }
+      { verified: true, private: false },
+      { new: true }
     )
+
+    if (!joke) {
+      if (acceptsHtml) {
+        redirectToVerificationResult(EVerificationStatus.notFound)
+        return
+      }
+
+      res.status(404).json({
+        success: false,
+        message: 'Joke not found',
+      })
+      return
+    }
+
     const subject = EYourJokeHasBeenVerified[joke?.language as ELanguage]
     const message = `${joke?.category}, ${
       joke?.type === EJokeType.twopart ? `${joke?.setup} ${joke?.delivery}` : ''
@@ -337,28 +262,27 @@ const verifyJoke = async (req: Request, res: Response): Promise<void> => {
     const author = joke?.author || ''
     const recipient = await User.findOne({ _id: author })
     const username = recipient?.username || ''
-    const link = `${process.env.SITE_URL}/portfolio/jokes?login=true`
+    const link = `${process.env.SITE_URL}?login=true`
     const language = (joke?.language as ELanguage) ?? 'en'
-    sendMail(subject, message, username, link)
-      .then(() => {
-        res.status(201).json({
-          success: true,
-          message: EEmailSent[language],
-          joke,
-        })
-        return
-      })
-      .catch((error) => {
-        console.error(EErrorSendingMail[joke?.language as ELanguage], error)
-        res.status(500).json({
-          success: false,
-          message:
-            EErrorSendingMail[joke?.language as keyof typeof EErrorSendingMail],
-          error,
-        })
-      })
-    //res.status(200).json({ message: 'Joke verified', joke })
+
+    await sendMail(subject, message, username, link)
+
+    if (acceptsHtml) {
+      redirectToVerificationResult(EVerificationStatus.success)
+      return
+    }
+
+    res.status(201).json({
+      success: true,
+      message: EEmailSent[language],
+      joke,
+    })
   } catch (error) {
+    if (acceptsHtml) {
+      redirectToVerificationResult(EVerificationStatus.error)
+      return
+    }
+
     res.status(500).json({
       success: false,
       message: `An error occurred: ${(error as Error)?.message} ${
@@ -372,10 +296,7 @@ const verifyJoke = async (req: Request, res: Response): Promise<void> => {
 
 const updateJoke = async (req: Request, res: Response): Promise<void> => {
   try {
-    const {
-      // params: { _id },
-      body,
-    } = req
+    const { body } = req
 
     const { _id, ...updateFields } = body
 
@@ -383,23 +304,6 @@ const updateJoke = async (req: Request, res: Response): Promise<void> => {
 
     const findJoke = await Joke.findOne({ _id: body._id })
     if (findJoke?.private === true && body.private === false) {
-      // const subject = 'A joke needs verification'
-      // const message = `${body.jokeId}, ${body.type}, ${body.category}, ${
-      //   body.language
-      // }, ${body.safe}, ${Object.entries(body.flags)
-      //   .filter(([key, value]) => value)
-      //   .map(([key, value]) => key)
-      //   .join(', ')}, ${body.user}, ${body.setup ? body.setup : ''}, ${
-      //   body.delivery ? body.delivery : ''
-      // }, ${body.body ? body.joke : ''}`
-      // const adminEmail = process.env.NODEMAILER_USER || ''
-      // const link = `${process.env.BASE_URI}/api/jokes/${body.jokeId}/verification`
-
-      // sendMail(subject, message, adminEmail, body.language, link)
-      //   .then((response) => console.log(EEmailSent[body.language as ELanguage], response))
-      //   .catch((error) =>
-      //     console.error(EErrorSendingMail[body.language as ELanguage], error)
-      //   )
       const author = await User.findOne({ _id: req.body.author })
       const subject = 'A joke needs verification'
       const message = `${author?.username}: ${author?.name}: ${body.user}, ${
@@ -417,26 +321,6 @@ const updateJoke = async (req: Request, res: Response): Promise<void> => {
       const adminEmail = process.env.NODEMAILER_USER || ''
       const link = `${process.env.BASE_URI}/api/jokes/${findJoke._id}/verification`
 
-      // sendMail(subject, message, adminEmail, language, link)
-      //   .then((response) => {
-      //     console.log(EEmailSent[body.language as ELanguage], response)
-      //     res.status(201).json({
-      //       success: true,
-      //       message:
-      //         EEmailSentToAdministratorPleaseWaitForApproval[
-      //           body.language as keyof typeof EEmailSentToAdministratorPleaseWaitForApproval
-      //         ],
-      //       joke,
-      //     })
-      //   })
-      //   .catch((error) => {
-      //     console.error(EErrorSendingMail[language as ELanguage], error)
-      //     res.status(500).json({
-      //       success: false,
-      //       message: EErrorSendingMail[language as keyof typeof EErrorSendingMail],
-      //       error,
-      //     })
-      //   })
       try {
         await sendMail(subject, message, adminEmail, link)
 
@@ -517,30 +401,6 @@ const deleteUserFromJoke = async (
   }
 }
 
-// const deleteUserFromJokeAndDeleteJokeIfUserArrayEmpty = async (
-//   req: Request,
-//   res: Response
-// ): Promise<void> => {
-//   try {
-//     const {
-//       params: { id: _id, userId },
-//     } = req
-
-//     const joke: IJoke | null = await Joke.findOne({ _id: _id })
-//     const userIndex = joke?.user.indexOf(userId)
-
-//     if (userIndex !== undefined && userIndex !== -1) {
-//       joke?.user.splice(userIndex, 1)
-//       await joke?.save()
-//     }
-
-//     res.status(200).json({ message: 'User deleted from joke', joke })
-//   } catch (error) {
-//     console.error('Error:', error)
-//     res.status(500).json({ message: EError[language as ELanguage] })
-//   }
-// }
-
 const findJokeByJokeIdLanguageCategoryType = async (
   req: Request,
   res: Response
@@ -563,17 +423,6 @@ const findJokeByJokeIdLanguageCategoryType = async (
   }
 }
 
-// const getJokesByUsername = async (req: Request, res: Response): Promise<void> => {
-//   try {
-//     const jokes: IJoke[] | null = await Joke.findOne({ user: req.params.username })
-//     res.status(200).json({ jokes })
-//   } catch (error) {
-//     res
-//       .status(500)
-//       .json({ message: EError[language as ELanguage] || 'An error occurred' })
-//     console.error('Error:', error)
-//   }
-// }
 const getJokesByUserId = async (req: Request, res: Response): Promise<void> => {
   try {
     const jokes: IJoke[] = await Joke.find({ user: { $in: [req.params.id] } })
