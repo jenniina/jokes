@@ -4,7 +4,9 @@
   "description": "",
   "main": "src/app.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "npm --prefix frontend run build && tsc",
+    "build:frontend": "npm --prefix frontend run build",
+    "build:backend": "tsc",
     "dev": "concurrently \"tsc -w\" \"nodemon dist/app.js\"",
     "start": "node dist/app.js"
   },
@@ -20,7 +22,8 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.5.3",
     "nodemailer": "^8.0.7",
-    "sanitize-html": "^2.11.0"
+    "sanitize-html": "^2.11.0",
+    "vike": "^0.4.259"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

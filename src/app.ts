@@ -11,6 +11,8 @@ require('dotenv').config()
 
 const app: Express = express()
 app.set('etag', false)
+const isProduction = process.env.NODE_ENV === 'production'
+const clientDistDir = path.join(__dirname, 'frontend', 'client')
 
 // Needed when running behind a reverse proxy (typical in production hosting)
 // so req.ip reflects the real client IP via X-Forwarded-For.
@@ -80,9 +82,10 @@ const apiLimiter = rateLimit({
 
 app.use('/api', apiLimiter, routes)
 
-// Serve static files from the React frontend with explicit options
+// Serve built frontend assets directly and let Vike render HTML routes.
 app.use(
-  express.static(path.join(__dirname, 'frontend', 'client'), {
+  express.static(clientDistDir, {
+    index: false,
     maxAge: '1d',
     setHeaders: (res, path) => {
       if (path.endsWith('.js')) {
@@ -99,21 +102,41 @@ app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'OK' })
 })
 
-// Catch-all handler: send back React's index.html file for client-side routing
-// This should only catch routes that don't exist as files
-app.use((req: Request, res: Response, next) => {
-  // Skip if it's an API route
+app.get('*', async (req: Request, res: Response, next) => {
   if (req.path.startsWith('/api/')) {
     return next()
   }
 
-  // Skip if it looks like a file (has extension)
   if (req.path.includes('.') && !req.path.endsWith('/')) {
     return res.status(404).send('File not found')
   }
 
-  // Serve index.html for SPA routes
-  res.sendFile(path.join(__dirname, 'frontend', 'client', 'index.html'))
+  if (!isProduction) {
+    return res.sendFile(path.join(clientDistDir, 'index.html'))
+  }
+
+  try {
+    const { renderPage } = await import('vike/server')
+    const pageContext = await renderPage({
+      urlOriginal: req.originalUrl,
+      headersOriginal: req.headers,
+    })
+
+    const httpResponse = pageContext.httpResponse
+
+    if (!httpResponse) {
+      return next()
+    }
+
+    httpResponse.headers.forEach(([name, value]) => {
+      res.setHeader(name, value)
+    })
+
+    return res.status(httpResponse.statusCode).send(httpResponse.body)
+  } catch (error) {
+    console.error('SSR render error:', error)
+    return res.status(500).send('Internal Server Error')
+  }
 })
 
 const uri: string = `mongodb+srv://${encodeURIComponent(

@@ -1,8 +1,11 @@
 import type { Config } from 'vike/types'
 
 export default {
-  // Enable SSG for all pages
-  prerender: true,
+  // Pre-render the known entry route while keeping the server bundle for SSR.
+  prerender: {
+    partial: true,
+    keepDistServer: true,
+  },
 
   route: '*',
 
