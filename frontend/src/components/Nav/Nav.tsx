@@ -39,6 +39,7 @@ import { useOutsideClick } from '../../hooks/useOutsideClick'
 import { useIsClient, useWindow } from '../../hooks/useSSR'
 import useScrollDirection from '../../hooks/useScrollDirection'
 import CopyToClipboard from '../CopyToClipboard/CopyToClipboard'
+import api from '../../services/api'
 
 type Form = 'login' | 'register' | 'reset' | null
 
@@ -78,6 +79,7 @@ const Nav = forwardRef<{ getStyle: () => boolean }>((_props, ref) => {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [name, setName] = useState('')
   const [sending, setSending] = useState(false)
+  const [verifyingJokeId, setVerifyingJokeId] = useState<string | null>(null)
 
   const { windowWidth } = useWindowSize()
   const touchDevice = isTouchDevice()
@@ -135,6 +137,70 @@ const Nav = forwardRef<{ getStyle: () => boolean }>((_props, ref) => {
   }, [dispatch, location.hash, location.pathname, location.search, t])
 
   const isLoginFormOpen = openForm === 'login'
+
+    useEffect(() => {
+      const params = new URLSearchParams(location.search)
+      const jokeId = params.get('verifyJoke')
+
+      if (!jokeId) {
+        if (verifyingJokeId !== null) {
+          setVerifyingJokeId(null)
+        }
+        return
+      }
+
+      if (!user) {
+        mainMenu.show()
+        toolbar.show()
+        setOpenForm('login')
+
+        if (verifyingJokeId !== jokeId) {
+          setVerifyingJokeId(jokeId)
+          void dispatch(notify(t('PleaseLoginToVerifyJoke'), false, 8))
+        }
+
+        return
+      }
+
+      if (verifyingJokeId === jokeId) {
+        return
+      }
+
+      setVerifyingJokeId(jokeId)
+
+      void api
+        .get(`/jokes/${jokeId}/verification`)
+        .then((response) => {
+          void dispatch(
+            notify(response.data?.message ?? t('JokeVerificationSucceeded'), false, 8)
+          )
+        })
+        .catch((error: unknown) => {
+          const message = getErrorMessage(error, t('JokeVerificationFailed'))
+          void dispatch(notify(message, true, 8))
+        })
+        .finally(() => {
+          params.delete('verifyJoke')
+          params.delete('login')
+          const nextSearch = params.toString()
+          window.history.replaceState(
+            {},
+            '',
+            `${location.pathname}${nextSearch ? `?${nextSearch}` : ''}${location.hash}`
+          )
+          setVerifyingJokeId(null)
+        })
+    }, [
+      dispatch,
+      location.hash,
+      location.pathname,
+      location.search,
+      mainMenu,
+      toolbar,
+      t,
+      user,
+      verifyingJokeId,
+    ])
   const isRegisterFormOpen = openForm === 'register'
   const isResetFormOpen = openForm === 'reset'
 

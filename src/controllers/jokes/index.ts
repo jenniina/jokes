@@ -48,6 +48,8 @@ enum EJokeAdded {
   fi = 'Vitsi lisätty',
 }
 
+const isAdminUser = (role?: number | null) => Boolean(role && role > 2)
+
 const getJokes = async (req: Request, res: Response): Promise<void> => {
   try {
     const jokes: IJoke[] = await Joke.find()
@@ -110,6 +112,12 @@ const addJoke = async (req: Request, res: Response): Promise<void> => {
       language: body.language,
     }
 
+    const author = body.author
+      ? await User.findOne({ _id: body.author })
+      : null
+    const shouldAutoVerify =
+      body.private === false && isAdminUser(author?.role ?? null)
+
     const update =
       req.body.type === EJokeType.single
         ? {
@@ -122,7 +130,9 @@ const addJoke = async (req: Request, res: Response): Promise<void> => {
               safe: req.body.safe,
               flags: req.body.flags,
               private: req.body.private ?? undefined,
-              verified: req.body.verified ?? undefined,
+              verified: shouldAutoVerify
+                ? true
+                : req.body.verified ?? undefined,
               anonymous: req.body.anonymous ?? undefined,
               author: req.body.author ?? undefined,
               language: body.language,
@@ -140,7 +150,9 @@ const addJoke = async (req: Request, res: Response): Promise<void> => {
               safe: req.body.safe,
               flags: req.body.flags,
               private: req.body.private ?? undefined,
-              verified: req.body.verified ?? undefined,
+              verified: shouldAutoVerify
+                ? true
+                : req.body.verified ?? undefined,
               anonymous: req.body.anonymous ?? undefined,
               author: req.body.author ?? undefined,
               language: body.language,
@@ -148,14 +160,30 @@ const addJoke = async (req: Request, res: Response): Promise<void> => {
             $addToSet: { user: { $each: body.user } },
           }
 
-    const joke = (await Joke.findOneAndUpdate(filter, update, {
+    let joke = (await Joke.findOneAndUpdate(filter, update, {
       new: true,
       upsert: true,
     })) as IJoke
 
+    if (shouldAutoVerify && joke && !joke.verified) {
+      joke = (await Joke.findByIdAndUpdate(
+        joke._id,
+        { verified: true },
+        { new: true }
+      )) as IJoke
+    }
+
     //Object.values(joke.flags).some(Boolean)
     if (joke.private === false) {
-      const author = await User.findOne({ _id: req.body.author })
+      if (shouldAutoVerify) {
+        res.status(201).json({
+          success: true,
+          message: EJokeAdded[joke.language as ELanguage],
+          joke,
+        })
+        return
+      }
+
       const subject = 'A joke needs verification'
       const message = ` ${author?.username}: ${author?.name}: ${joke.user}, ${
         joke._id
@@ -170,8 +198,7 @@ const addJoke = async (req: Request, res: Response): Promise<void> => {
         joke.type === EJokeType.twopart && joke.delivery ? joke.delivery : ''
       }, ${joke.type === EJokeType.single && joke.joke ? joke.joke : ''}`
       const adminEmail = process.env.NODEMAILER_USER || ''
-      const link = `${process.env.BASE_URI}/api/jokes/${joke._id}/verification`
-      const language = (joke.language as ELanguage) ?? 'en'
+      const link = `${process.env.SITE_URL}?verifyJoke=${joke._id}`
 
       try {
         await sendMail(subject, message, adminEmail, link)
@@ -222,19 +249,6 @@ const verifyJoke = async (req: Request, res: Response): Promise<void> => {
     fi = 'Vitsisi on vahvistettu',
   }
 
-  enum EVerificationStatus {
-    success = 'success',
-    notFound = 'not-found',
-    error = 'error',
-  }
-
-  const jokesAppUrl = `${process.env.SITE_URL}`
-  const acceptsHtml = req.accepts(['html', 'json']) === 'html'
-  const redirectToVerificationResult = (status: EVerificationStatus) => {
-    const params = new URLSearchParams({ jokeVerification: status })
-    res.redirect(303, `${jokesAppUrl}?${params.toString()}`)
-  }
-
   try {
     const joke: IJoke | null = await Joke.findOneAndUpdate(
       { _id: req.params.id },
@@ -243,11 +257,6 @@ const verifyJoke = async (req: Request, res: Response): Promise<void> => {
     )
 
     if (!joke) {
-      if (acceptsHtml) {
-        redirectToVerificationResult(EVerificationStatus.notFound)
-        return
-      }
-
       res.status(404).json({
         success: false,
         message: 'Joke not found',
@@ -267,22 +276,12 @@ const verifyJoke = async (req: Request, res: Response): Promise<void> => {
 
     await sendMail(subject, message, username, link)
 
-    if (acceptsHtml) {
-      redirectToVerificationResult(EVerificationStatus.success)
-      return
-    }
-
     res.status(201).json({
       success: true,
       message: EEmailSent[language],
       joke,
     })
   } catch (error) {
-    if (acceptsHtml) {
-      redirectToVerificationResult(EVerificationStatus.error)
-      return
-    }
-
     res.status(500).json({
       success: false,
       message: `An error occurred: ${(error as Error)?.message} ${
@@ -303,8 +302,26 @@ const updateJoke = async (req: Request, res: Response): Promise<void> => {
     const language = body.language as ELanguage
 
     const findJoke = await Joke.findOne({ _id: body._id })
+    const author = body.author ? await User.findOne({ _id: body.author }) : null
+    const shouldAutoVerify =
+      body.private === false && isAdminUser(author?.role ?? null)
+
     if (findJoke?.private === true && body.private === false) {
-      const author = await User.findOne({ _id: req.body.author })
+      if (shouldAutoVerify) {
+        const updateJoke: IJoke | null = await Joke.findOneAndUpdate(
+          { _id: body._id },
+          { ...updateFields, verified: true },
+          { upsert: false, new: true }
+        )
+
+        res.status(200).json({
+          success: true,
+          message: EJokeUpdated[language as ELanguage],
+          updateJoke,
+        })
+        return
+      }
+
       const subject = 'A joke needs verification'
       const message = `${author?.username}: ${author?.name}: ${body.user}, ${
         body.jokeId
@@ -319,7 +336,7 @@ const updateJoke = async (req: Request, res: Response): Promise<void> => {
         body.type === EJokeType.twopart && body.delivery ? body.delivery : ''
       }, ${body.type === EJokeType.single && body.body ? body.body : ''}`
       const adminEmail = process.env.NODEMAILER_USER || ''
-      const link = `${process.env.BASE_URI}/api/jokes/${findJoke._id}/verification`
+      const link = `${process.env.SITE_URL}?verifyJoke=${findJoke._id}`
 
       try {
         await sendMail(subject, message, adminEmail, link)

@@ -890,6 +890,15 @@ export const translations = {
     cs: 'Prosím přihlaste se',
     fi: 'Pyydämme kirjautumaan sisään',
   },
+  PleaseLoginToVerifyJoke: {
+    en: 'Please login with an admin account to verify this joke',
+    es: 'Inicie sesión con una cuenta de administrador para verificar esta broma',
+    fr: 'Veuillez vous connecter avec un compte administrateur pour vérifier cette blague',
+    de: 'Bitte melden Sie sich mit einem Administratorkonto an, um diesen Witz zu überprüfen',
+    pt: 'Faça login com uma conta de administrador para verificar esta piada',
+    cs: 'Přihlaste se prosím pomocí účtu správce, abyste mohli tento vtip ověřit',
+    fi: 'Kirjaudu sisään ylläpitäjätilillä vahvistaaksesi tämän vitsin',
+  },
   PleaseSelectAnOption: {
     en: 'Please select an option',
     es: 'Por favor seleccione una opción',

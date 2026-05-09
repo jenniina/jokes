@@ -152,7 +152,7 @@ router.get(
 )
 router.post('/jokes', addJoke)
 router.put('/jokes/:id', updateJoke)
-router.get('/jokes/:id/verification', verifyJoke)
+router.get('/jokes/:id/verification', [authenticateUser, checkIfAdmin], verifyJoke)
 router.get('/jokes', getJokes)
 router.get('/jokes/user/:id/', getJokesByUserId)
 router.delete('/jokes/:id/delete-user/:userId', deleteUserFromJoke)
