@@ -489,13 +489,14 @@ const JokeSubmit = ({
               ? t('PublishAnonymously')
               : t('PublishWithNickname')}
           </p>
-          <button
-            type="submit"
-            className="small"
-            disabled={saving}
-            id="submit-new-joke"
-          >
-            {saving ? t('Saving') : isCheckedPrivate ? t('Publish') : t('Send')}
+          <button type="submit" disabled={saving} id="submit-new-joke">
+            <big>
+              {saving
+                ? t('Saving')
+                : isCheckedPrivate
+                  ? t('Publish')
+                  : t('Send')}
+            </big>
           </button>
         </form>
       </div>

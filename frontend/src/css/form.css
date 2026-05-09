@@ -248,7 +248,6 @@ input[type='checkbox' i]:focus-visible {
   outline-color: currentColor;
   outline-style: solid;
   outline-width: 0.4em;
-  pointer-events: none;
   outline-offset: -1px;
 }
 
