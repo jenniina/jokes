@@ -10,6 +10,7 @@ RUN npm ci
 
 FROM node:20-bookworm-slim AS build
 WORKDIR /app
+ENV NODE_OPTIONS=--max-old-space-size=4096
 
 COPY --from=backend-deps /app/node_modules ./node_modules
 COPY --from=frontend-deps /app/frontend/node_modules ./frontend/node_modules
