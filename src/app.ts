@@ -3,6 +3,7 @@ import mongoose from 'mongoose'
 import cors from 'cors'
 import bodyParser from 'body-parser'
 import * as path from 'path'
+import { pathToFileURL } from 'url'
 import routes from './routes'
 import { rateLimit } from './middleware/rateLimit'
 import { mongoSanitize } from './middleware/mongoSanitize'
@@ -13,6 +14,24 @@ const app: Express = express()
 app.set('etag', false)
 const isProduction = process.env.NODE_ENV === 'production'
 const clientDistDir = path.join(__dirname, 'frontend', 'client')
+const serverEntryFile = path.join(__dirname, 'frontend', 'server', 'entry.mjs')
+let serverEntryPromise: Promise<unknown> | null = null
+const importServerEntry = new Function(
+  'filePath',
+  'return import(filePath)'
+) as (filePath: string) => Promise<unknown>
+
+const ensureServerEntryLoaded = () => {
+  if (!isProduction) {
+    return Promise.resolve()
+  }
+
+  if (!serverEntryPromise) {
+    serverEntryPromise = importServerEntry(pathToFileURL(serverEntryFile).href)
+  }
+
+  return serverEntryPromise
+}
 
 // Needed when running behind a reverse proxy (typical in production hosting)
 // so req.ip reflects the real client IP via X-Forwarded-For.
@@ -116,6 +135,8 @@ app.get('*', async (req: Request, res: Response, next) => {
   }
 
   try {
+    await ensureServerEntryLoaded()
+
     const { renderPage } = await import('vike/server')
     const pageContext = await renderPage({
       urlOriginal: req.originalUrl,
