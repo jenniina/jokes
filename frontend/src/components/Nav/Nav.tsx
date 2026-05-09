@@ -92,10 +92,16 @@ const Nav = forwardRef<{ getStyle: () => boolean }>((_props, ref) => {
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     if (params.get('login') === 'true') {
+      mainMenu.show()
+      toolbar.show()
       setOpenForm('login')
     } else if (params.get('register') === 'true') {
+      mainMenu.show()
+      toolbar.show()
       setOpenForm('register')
     } else if (params.get('reset') === 'true') {
+      mainMenu.show()
+      toolbar.show()
       setOpenForm('reset')
     }
   }, [location.search])
