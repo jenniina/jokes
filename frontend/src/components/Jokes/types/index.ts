@@ -147,6 +147,8 @@ export enum ECategory_en {
   // Any = 'Any',
   Misc = 'Misc',
   Programming = 'Programming',
+  Geek = 'Geek',
+  KnockKnock = 'Knock-knock',
   Dark = 'Dark',
   Pun = 'Pun',
   Spooky = 'Spooky',
@@ -158,6 +160,8 @@ export enum ECategory_es {
   // Any = 'Cualquiera',
   Misc = 'Varios',
   Programming = 'Programación',
+  Geek = 'Geek',
+  KnockKnock = 'Toc toc',
   Dark = 'Oscuro',
   Pun = 'Juego de palabras',
   Spooky = 'Espeluznante',
@@ -169,6 +173,8 @@ export enum ECategory_fr {
   // Any = "N'importe quel",
   Misc = 'Divers',
   Programming = 'Programmation',
+  Geek = 'Geek',
+  KnockKnock = 'Toc toc',
   Dark = 'Sombre',
   Pun = 'Jeu de mots',
   Spooky = 'Effrayant',
@@ -180,6 +186,8 @@ export enum ECategory_de {
   // Any = 'Jede',
   Misc = 'Verschiedenes',
   Programming = 'Programmierung',
+  Geek = 'Geek',
+  KnockKnock = 'Klopf-klopf',
   Dark = 'Dunkel',
   Pun = 'Wortspiel',
   Spooky = 'Unheimlich',
@@ -191,6 +199,8 @@ export enum ECategory_pt {
   // Any = 'Qualquer',
   Misc = 'Diversos',
   Programming = 'Programação',
+  Geek = 'Geek',
+  KnockKnock = 'Toc toc',
   Dark = 'Escuro',
   Pun = 'Jogo de palavras',
   Spooky = 'Assustador',
@@ -202,6 +212,8 @@ export enum ECategory_cs {
   // Any = 'Jakýkoliv',
   Misc = 'Různé',
   Programming = 'Programování',
+  Geek = 'Geek',
+  KnockKnock = 'Ťuk ťuk',
   Dark = 'Temný',
   Pun = 'Hra slov',
   Spooky = 'Strašidelný',
@@ -214,6 +226,8 @@ export enum ECategory_fi {
   // Any = 'Mikä tahansa',
   Misc = 'Sekalaista',
   Programming = 'Ohjelmointi',
+  Geek = 'Nörtti',
+  KnockKnock = 'Kop kop',
   Dark = 'Synkkä',
   Pun = 'Sanaleikki',
   Spooky = 'Halloween',
@@ -244,6 +258,8 @@ export interface CategoryByLanguages {
 export enum ECategories {
   Misc = 'Misc',
   Programming = 'Programming',
+  Geek = 'Geek',
+  KnockKnock = 'KnockKnock',
   Dark = 'Dark',
   Pun = 'Pun',
   Spooky = 'Spooky',
@@ -340,6 +356,20 @@ export interface IDadJoke {
   id: string
   joke: string
   status: number
+}
+
+export enum EOfficialJokeType {
+  general = 'general',
+  knockKnock = 'knock-knock',
+  programming = 'programming',
+  dad = 'dad',
+}
+
+export interface IOfficialJoke {
+  type: EOfficialJokeType
+  setup: string
+  punchline: string
+  id: number
 }
 
 export interface IJokeType {
@@ -593,6 +623,8 @@ export const jokeCategoryByLanguage: IJokeCategoryByLanguage = {
   en: {
     Programming: ECategory_en.Programming,
     Misc: ECategory_en.Misc,
+    Geek: ECategory_en.Geek,
+    KnockKnock: ECategory_en.KnockKnock,
     Dark: ECategory_en.Dark,
     Pun: ECategory_en.Pun,
     Spooky: ECategory_en.Spooky,
@@ -603,6 +635,8 @@ export const jokeCategoryByLanguage: IJokeCategoryByLanguage = {
   es: {
     Programming: ECategory_es.Programming,
     Misc: ECategory_es.Misc,
+    Geek: ECategory_es.Geek,
+    KnockKnock: ECategory_es.KnockKnock,
     Dark: ECategory_es.Dark,
     Pun: ECategory_es.Pun,
     Spooky: ECategory_es.Spooky,
@@ -613,6 +647,8 @@ export const jokeCategoryByLanguage: IJokeCategoryByLanguage = {
   fr: {
     Programming: ECategory_fr.Programming,
     Misc: ECategory_fr.Misc,
+    Geek: ECategory_fr.Geek,
+    KnockKnock: ECategory_fr.KnockKnock,
     Dark: ECategory_fr.Dark,
     Pun: ECategory_fr.Pun,
     Spooky: ECategory_fr.Spooky,
@@ -623,6 +659,8 @@ export const jokeCategoryByLanguage: IJokeCategoryByLanguage = {
   de: {
     Programming: ECategory_de.Programming,
     Misc: ECategory_de.Misc,
+    Geek: ECategory_de.Geek,
+    KnockKnock: ECategory_de.KnockKnock,
     Dark: ECategory_de.Dark,
     Pun: ECategory_de.Pun,
     Spooky: ECategory_de.Spooky,
@@ -633,6 +671,8 @@ export const jokeCategoryByLanguage: IJokeCategoryByLanguage = {
   pt: {
     Programming: ECategory_pt.Programming,
     Misc: ECategory_pt.Misc,
+    Geek: ECategory_pt.Geek,
+    KnockKnock: ECategory_pt.KnockKnock,
     Dark: ECategory_pt.Dark,
     Pun: ECategory_pt.Pun,
     Spooky: ECategory_pt.Spooky,
@@ -643,6 +683,8 @@ export const jokeCategoryByLanguage: IJokeCategoryByLanguage = {
   cs: {
     Programming: ECategory_cs.Programming,
     Misc: ECategory_cs.Misc,
+    Geek: ECategory_cs.Geek,
+    KnockKnock: ECategory_cs.KnockKnock,
     Dark: ECategory_cs.Dark,
     Pun: ECategory_cs.Pun,
     Spooky: ECategory_cs.Spooky,
@@ -653,6 +695,8 @@ export const jokeCategoryByLanguage: IJokeCategoryByLanguage = {
   fi: {
     Programming: ECategory_fi.Programming,
     Misc: ECategory_fi.Misc,
+    Geek: ECategory_fi.Geek,
+    KnockKnock: ECategory_fi.KnockKnock,
     Dark: ECategory_fi.Dark,
     Pun: ECategory_fi.Pun,
     Spooky: ECategory_fi.Spooky,

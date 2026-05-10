@@ -24,6 +24,8 @@ import {
   INorrisJoke,
   IDadJoke,
   IJokeContent,
+  EOfficialJokeType,
+  IOfficialJoke,
 } from './types'
 import {
   ELanguages,
@@ -32,7 +34,6 @@ import {
   IBlacklistedJoke,
   ELanguagesLong,
   TPublicUserNamesMap,
-  IPublicUserName,
 } from '../../types'
 import { useSelector } from 'react-redux'
 import { useAppDispatch } from '../../hooks/useAppDispatch'
@@ -50,6 +51,8 @@ import { initializeUser } from '../../reducers/authReducer'
 import UserJokes from './components/UserJokes'
 import norrisService from './services/chucknorris'
 import dadjokeService from './services/dadjokes'
+import geekjokeService from './services/geekjokes'
+import officialJokeService from './services/officialjokes'
 import { useNavigate } from 'react-router-dom'
 import {
   addToBlacklistedJokes,
@@ -544,6 +547,133 @@ function Jokes() {
     }
   }
 
+  const rememberExternalJoke = (jokeId: string, repeat: boolean) => {
+    if (isJokeBlacklisted(jokeId)) {
+      void fetchApi()
+      return false
+    }
+    if (
+      repeat &&
+      lastJokes?.some(
+        (joke) => joke.jokeId === jokeId && joke.language === ELanguages.en
+      )
+    ) {
+      void fetchApi()
+      return false
+    }
+
+    setLastJokes((prevJokes) => [
+      ...prevJokes,
+      { jokeId: jokeId, language: ELanguages.en },
+    ])
+    if (lastJokes?.length > lastJokesLength) {
+      void setLastJokes((prevJokes) => prevJokes.slice(1))
+    }
+
+    return true
+  }
+
+  const setSingleLineExternalJokeData = (
+    jokeId: string,
+    jokeText: string,
+    category: ECategories,
+    subCategories: string[] | undefined,
+    repeat: boolean,
+    userId?: IUser['_id'],
+    safe = true,
+    flagsOverride?: IJoke['flags']
+  ) => {
+    if (!rememberExternalJoke(jokeId, repeat)) {
+      return false
+    }
+
+    const flags =
+      flagsOverride ??
+      ({
+        nsfw: false,
+        religious: false,
+        political: false,
+        racist: false,
+        sexist: false,
+        explicit: false,
+      } as IJoke['flags'])
+
+    setJokeCategory(category)
+    setSubCategoryResults(subCategories ?? [])
+
+    void dispatch(
+      saveMostRecentJoke({
+        jokeId,
+        joke: jokeText,
+        type: EJokeType.single,
+        category,
+        subCategories:
+          subCategories && subCategories?.length > 0
+            ? subCategories
+            : undefined,
+        language: ELanguages.en,
+        safe,
+        user: userId ? [userId] : [],
+        flags,
+      })
+    )
+
+    setFlags(flags)
+    setJoke(jokeText)
+    setDelivery('')
+    setJokeId(jokeId)
+    setJokeLanguage(ELanguages.en)
+
+    return true
+  }
+
+  const setOfficialJokeData = (
+    jokeData: IOfficialJoke,
+    category: ECategories,
+    repeat: boolean,
+    userId?: IUser['_id']
+  ) => {
+    const jokeId = jokeData.id.toString()
+    if (!rememberExternalJoke(jokeId, repeat)) {
+      return false
+    }
+
+    const flags = {
+      nsfw: false,
+      religious: false,
+      political: false,
+      racist: false,
+      sexist: false,
+      explicit: false,
+    }
+
+    setJokeCategory(category)
+    setSubCategoryResults([])
+
+    void dispatch(
+      saveMostRecentJoke({
+        jokeId,
+        setup: jokeData.setup,
+        delivery: jokeData.punchline,
+        type: EJokeType.twopart,
+        category,
+        subCategories: undefined,
+        language: ELanguages.en,
+        safe: true,
+        user: userId ? [userId] : [],
+        flags,
+      })
+    )
+
+    setFlags(flags)
+    setJoke(jokeData.setup)
+    setDelivery(jokeData.punchline)
+    setJokeId(jokeId)
+    setJokeLanguage(ELanguages.en)
+
+    return true
+  }
+
   //for ChuckNorris and DadJoke
   const setJokeData = (
     jokeData: INorrisJoke | IDadJoke,
@@ -553,33 +683,6 @@ function Jokes() {
     repeat: boolean,
     userId?: IUser['_id']
   ) => {
-    if (isJokeBlacklisted(jokeData.id)) {
-      void fetchApi()
-      return
-    }
-    if (
-      repeat &&
-      lastJokes?.some(
-        (joke) => joke.jokeId === jokeData.id && joke.language === ELanguages.en
-      )
-    ) {
-      // If it is found in the lastJokes, fetch again
-      void fetchApi()
-      return
-    }
-    //if defined
-    if (jokeData?.id)
-      setLastJokes((prevJokes) => [
-        ...prevJokes,
-        { jokeId: jokeData.id, language: ELanguages.en },
-      ])
-    if (lastJokes?.length > lastJokesLength) {
-      void setLastJokes((prevJokes) => prevJokes.slice(1))
-    }
-
-    setJokeCategory(category)
-    setSubCategoryResults(subCategories ?? [])
-
     let jokeText
     if (type === 'dad') {
       jokeText = (jokeData as IDadJoke).joke
@@ -587,73 +690,87 @@ function Jokes() {
       jokeText = (jokeData as INorrisJoke).value
     }
 
-    void dispatch(
-      saveMostRecentJoke({
-        jokeId: jokeData.id.toString(),
-        joke: jokeText,
-        type: EJokeType.single,
-        category: category,
-        subCategories:
-          subCategories && subCategories?.length > 0
-            ? subCategories
-            : undefined,
-        language: ELanguages.en,
-
-        safe:
-          (jokeData as INorrisJoke)?.categories?.includes('explicit') ||
-          (jokeData as INorrisJoke)?.categories?.includes('political') ||
-          (jokeData as INorrisJoke)?.categories?.includes('religion')
-            ? false
-            : true,
-        user: userId ? [userId] : [],
-        flags: {
-          nsfw:
-            (jokeData as INorrisJoke).categories?.some(
-              (category) => category === 'nsfw'
-            ) ?? false,
-          religious:
-            (jokeData as INorrisJoke).categories?.some(
-              (category) => category === 'religion'
-            ) ?? false,
-          political:
-            (jokeData as INorrisJoke).categories?.some(
-              (category) => category === 'political'
-            ) ?? false,
-          racist:
-            (jokeData as INorrisJoke).categories?.some(
-              (category) => category === 'racist'
-            ) ?? false,
-          sexist:
-            (jokeData as INorrisJoke).categories?.some(
-              (category) => category === 'sexist'
-            ) ?? false,
-          explicit:
-            (jokeData as INorrisJoke).categories?.some(
-              (category) => category === 'explicit'
-            ) ?? false,
-        },
-      })
-    )
-
-    setFlags({
-      explicit:
-        (jokeData as INorrisJoke)?.categories?.includes('explicit') ?? false,
-      religious:
-        (jokeData as INorrisJoke)?.categories?.includes('religious') ?? false,
-      political:
-        (jokeData as INorrisJoke)?.categories?.includes('political') ?? false,
-      racist:
-        (jokeData as INorrisJoke)?.categories?.includes('racist') ?? false,
-      sexist:
-        (jokeData as INorrisJoke)?.categories?.includes('sexist') ?? false,
+    const flags = {
       nsfw:
-        (jokeData as INorrisJoke)?.categories?.includes('explicit') ?? false,
-    })
-    setJoke((jokeData as IDadJoke).joke ?? (jokeData as INorrisJoke).value)
-    setDelivery('')
-    setJokeId(jokeData.id)
-    setJokeLanguage(ELanguages.en)
-    setJoke((jokeData as IDadJoke).joke ?? (jokeData as INorrisJoke).value)
+        (jokeData as INorrisJoke).categories?.some(
+          (norrisCategory) => norrisCategory === 'nsfw'
+        ) ?? false,
+      religious:
+        (jokeData as INorrisJoke).categories?.some(
+          (norrisCategory) => norrisCategory === 'religion'
+        ) ?? false,
+      political:
+        (jokeData as INorrisJoke).categories?.some(
+          (norrisCategory) => norrisCategory === 'political'
+        ) ?? false,
+      racist:
+        (jokeData as INorrisJoke).categories?.some(
+          (norrisCategory) => norrisCategory === 'racist'
+        ) ?? false,
+      sexist:
+        (jokeData as INorrisJoke).categories?.some(
+          (norrisCategory) => norrisCategory === 'sexist'
+        ) ?? false,
+      explicit:
+        (jokeData as INorrisJoke).categories?.some(
+          (norrisCategory) => norrisCategory === 'explicit'
+        ) ?? false,
+    }
+
+    return setSingleLineExternalJokeData(
+      jokeData.id.toString(),
+      jokeText,
+      category,
+      subCategories,
+      repeat,
+      userId,
+      !flags.explicit && !flags.political && !flags.religious,
+      flags
+    )
+  }
+
+  const getGeekJokeId = (jokeText: string) => {
+    return `geek-${jokeText
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 80)}`
+  }
+
+  const fetchAndSetGeekJoke = async (
+    repeat: boolean,
+    userId?: IUser['_id']
+  ) => {
+    const joke = await geekjokeService.getRandomGeekJoke()
+
+    if (!joke) {
+      return false
+    }
+
+    return setSingleLineExternalJokeData(
+      getGeekJokeId(joke),
+      joke,
+      ECategories.Geek,
+      [],
+      repeat,
+      userId
+    )
+  }
+
+  const fetchAndSetOfficialJoke = async (
+    type: EOfficialJokeType,
+    category: ECategories,
+    repeat: boolean,
+    userId?: IUser['_id']
+  ) => {
+    const joke = await officialJokeService.getRandomOfficialJoke(type)
+
+    if (!joke) {
+      return false
+    }
+
+    return setOfficialJokeData(joke, category, repeat, userId)
   }
 
   const getRandomNorrisCategory = () => {
@@ -819,8 +936,14 @@ function Jokes() {
     const isEmpty = categoryValues?.length < 1
     const isChuckNorris = selectedCategory === ECategories.ChuckNorris
     const isDadJoke = selectedCategory === ECategories.DadJoke
+    const isGeek = selectedCategory === ECategories.Geek
+    const isProgramming = selectedCategory === ECategories.Programming
+    const isMisc = selectedCategory === ECategories.Misc
+    const isKnockKnock = selectedCategory === ECategories.KnockKnock
     const normalizedQueryValue = queryValue.replace(/&$/, '').trim()
     const isQueryNotEmpty = normalizedQueryValue !== ''
+    const canUseEnglishOnlyExternalSources =
+      jokeLanguage === ELanguages.en && !isCheckedJokeType && !isQueryNotEmpty
 
     let newFilteredJokes = filteredJokes
 
@@ -918,13 +1041,34 @@ function Jokes() {
       return
     }
 
-    if (isChuckNorris || isDadJoke) {
+    if (isChuckNorris || isDadJoke || isKnockKnock || isGeek) {
       // ChuckNorris and DadJoke only appear in English in the API, so for other languages, you search for a joke from the database
       if (jokeLanguage !== ELanguages.en) {
         void handleJokes(newFilteredJokes)
         return
+      } else if (isGeek) {
+        const joke = await fetchAndSetGeekJoke(true, user?._id)
+
+        if (!joke) {
+          noJoke()
+        }
+
+        return
+      } else if (isKnockKnock) {
+        const joke = await fetchAndSetOfficialJoke(
+          EOfficialJokeType.knockKnock,
+          ECategories.KnockKnock,
+          true,
+          user?._id
+        )
+
+        if (!joke) {
+          noJoke()
+        }
+
+        return
       } else if (isChuckNorris && isDadJoke) {
-        const random = Math.floor(getRandomMinMax(1, 2.999))
+        const random = Math.floor(getRandomMinMax(1, 3.999))
         if (random === 1 && isChuckNorris) {
           const query = isQueryNotEmpty ? normalizedQueryValue : null
           const joke = await fetchAndSetJoke(
@@ -938,13 +1082,24 @@ function Jokes() {
             noJoke()
             return
           }
-        } else if (random > 1 && isDadJoke) {
+        } else if (random === 2 && isDadJoke) {
           const query = isQueryNotEmpty ? normalizedQueryValue : null
           const joke = await fetchAndSetJoke(
             dadjokeService,
             query,
             ECategories.DadJoke,
             !isQueryNotEmpty
+          )
+          if (!joke) {
+            noJoke()
+            return
+          }
+        } else if (random === 3 && isDadJoke) {
+          const joke = await fetchAndSetOfficialJoke(
+            EOfficialJokeType.dad,
+            ECategories.DadJoke,
+            true,
+            user?._id
           )
           if (!joke) {
             noJoke()
@@ -965,19 +1120,63 @@ function Jokes() {
         }
       } else if (isDadJoke) {
         const query = isQueryNotEmpty ? normalizedQueryValue : null
-        const joke = await fetchAndSetJoke(
-          dadjokeService,
-          query,
-          ECategories.DadJoke,
-          !isQueryNotEmpty
-        )
+        const joke = query
+          ? await fetchAndSetJoke(
+              dadjokeService,
+              query,
+              ECategories.DadJoke,
+              !isQueryNotEmpty
+            )
+          : Math.random() < 0.5
+            ? await fetchAndSetJoke(
+                dadjokeService,
+                null,
+                ECategories.DadJoke,
+                true
+              )
+            : await fetchAndSetOfficialJoke(
+                EOfficialJokeType.dad,
+                ECategories.DadJoke,
+                true,
+                user?._id
+              )
         if (!joke) {
           noJoke()
           return
         }
       }
+    } else if (canUseEnglishOnlyExternalSources && isProgramming) {
+      const random = Math.floor(getRandomMinMax(1, 2.999))
+
+      if (random === 1) {
+        if (
+          !(await fetchAndSetOfficialJoke(
+            EOfficialJokeType.programming,
+            ECategories.Programming,
+            true,
+            user?._id
+          ))
+        ) {
+          void fetchFromJokeAPI(0, selectedCategory)
+        }
+      } else if (random === 2) {
+        void fetchFromJokeAPI(0, selectedCategory)
+      }
+      return
+    } else if (canUseEnglishOnlyExternalSources && isMisc) {
+      if (
+        !(await fetchAndSetOfficialJoke(
+          EOfficialJokeType.general,
+          ECategories.Misc,
+          true,
+          user?._id
+        ))
+      ) {
+        void fetchFromJokeAPI(0, selectedCategory)
+      }
+      return
     } else if (isEmpty && !isCheckedJokeType) {
-      const rand = Math.floor(getRandomMinMax(1, 10.999))
+      const rand = Math.floor(getRandomMinMax(1, 14.999))
       const query = isQueryNotEmpty ? normalizedQueryValue : null
       if (rand === 1) {
         if (
@@ -1010,6 +1209,54 @@ function Jokes() {
             ECategories.ChuckNorris,
             !isQueryNotEmpty
           )
+        }
+      } else if (rand === 3 && canUseEnglishOnlyExternalSources) {
+        if (!(await fetchAndSetGeekJoke(true, user?._id))) {
+          void fetchFromJokeAPI(0, selectedCategory)
+        }
+      } else if (rand === 4 && canUseEnglishOnlyExternalSources) {
+        if (
+          !(await fetchAndSetOfficialJoke(
+            EOfficialJokeType.programming,
+            ECategories.Programming,
+            true,
+            user?._id
+          ))
+        ) {
+          void fetchFromJokeAPI(0, selectedCategory)
+        }
+      } else if (rand === 5 && canUseEnglishOnlyExternalSources) {
+        if (
+          !(await fetchAndSetOfficialJoke(
+            EOfficialJokeType.general,
+            ECategories.Misc,
+            true,
+            user?._id
+          ))
+        ) {
+          void fetchFromJokeAPI(0, selectedCategory)
+        }
+      } else if (rand === 6 && canUseEnglishOnlyExternalSources) {
+        if (
+          !(await fetchAndSetOfficialJoke(
+            EOfficialJokeType.knockKnock,
+            ECategories.KnockKnock,
+            true,
+            user?._id
+          ))
+        ) {
+          void fetchFromJokeAPI(0, selectedCategory)
+        }
+      } else if (rand === 7 && canUseEnglishOnlyExternalSources) {
+        if (
+          !(await fetchAndSetOfficialJoke(
+            EOfficialJokeType.dad,
+            ECategories.DadJoke,
+            true,
+            user?._id
+          ))
+        ) {
+          void fetchFromJokeAPI(0, selectedCategory)
         }
       } else if (rand > 2) {
         void fetchFromJokeAPI(0, selectedCategory)
