@@ -349,7 +349,9 @@ const Nav = forwardRef<{ getStyle: () => boolean }>((_props, ref) => {
                 : 'var(--color-primary-7)',
             }}
           />
-          <span>{t('TheComediansCompanion')}</span>
+          <Link to="/" className="nou">
+            {t('TheComediansCompanion')}
+          </Link>
         </div>
         <button className={styles.settings} onClick={() => toggleToolbar()}>
           <Icon
@@ -421,7 +423,7 @@ const Nav = forwardRef<{ getStyle: () => boolean }>((_props, ref) => {
             </button>
           </div>
 
-          <div className={styles.loginregister}>
+          <div className={`${styles.loginregister} loginregister`}>
             {!user ? (
               <>
                 <div
@@ -488,27 +490,7 @@ const Nav = forwardRef<{ getStyle: () => boolean }>((_props, ref) => {
                 </div>
               </>
             ) : (
-              <>
-                <span>
-                  {t('LoggedInAs')} <i>{user.name ?? user.username}</i>
-                </span>
-                <button
-                  onClick={handleLogout}
-                  id="logoutnav"
-                  className={`logout danger ${styles.logout}`}
-                >
-                  {t('Logout')} &times;
-                </button>
-                <button
-                  disabled={user.name === 'temp'}
-                  onClick={() =>
-                    user && dispatch(logoutAllDevices(user._id ?? ''))
-                  }
-                  className={`reset ${styles['logout-all']}`}
-                >
-                  [{t('LogoutAllDevices')}]
-                </button>
-              </>
+              <FormLogin text="nav" />
             )}
           </div>
         </nav>

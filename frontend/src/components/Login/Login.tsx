@@ -2,9 +2,15 @@ import { useEffect, useRef, useState, FormEvent } from 'react'
 import Accordion from '../Accordion/Accordion'
 import { useAppDispatch } from '../../hooks/useAppDispatch'
 import { notify } from '../../reducers/notificationReducer'
-import { initializeUser, login, logout } from '../../reducers/authReducer'
+import {
+  initializeUser,
+  login,
+  logout,
+  logoutAllDevices,
+} from '../../reducers/authReducer'
 import { useSelector } from 'react-redux'
 import { ReducerProps } from '../../types'
+import { Link } from 'react-router-dom'
 import { useLanguageContext } from '../../contexts/LanguageContext'
 import { getErrorMessage } from '../../utils'
 
@@ -71,12 +77,20 @@ const FormLogin = ({ setIsFormOpen, isOpen, text }: LoginProps) => {
           <span>
             {t('LoggedInAs')} {user?.name ?? user.username}{' '}
           </span>
+          <Link to="/edit">{t('Edit')}</Link>
           <button
             onClick={handleLogout}
             id={`logout-${text}`}
             className={`logout danger ${text}`}
           >
             {t('Logout')} &times;
+          </button>
+          <button
+            disabled={user.name === 'temp'}
+            onClick={() => user && dispatch(logoutAllDevices(user._id ?? ''))}
+            className="reset logout-all"
+          >
+            [{t('LogoutAllDevices')}]
           </button>
         </div>
       ) : (

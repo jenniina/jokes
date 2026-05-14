@@ -109,8 +109,8 @@
   background: transparent;
   border: 0;
   outline: 0;
-  padding: 0;
-  margin: 0 0 0 1em;
+  padding: 0 0 0.3em 0;
+  margin: 0 0 0.1em 1em;
   margin-bottom: 0.1em;
   font-family: var(--title-family);
   display: flex;
@@ -120,8 +120,9 @@
   text-decoration: none;
   color: var(--color-primary-17);
 }
-.logo-container span {
-  margin-bottom: 0.2em;
+.logo-container a:link,
+.logo-container a:visited {
+  color: var(--color-primary-17);
   line-height: 0.8;
   font-size: 1.1em;
   letter-spacing: calc(var(--letter-spacing) * -0.5);
@@ -283,16 +284,6 @@ button.togglemenu[aria-expanded='true'] .menupath {
 .main-header button:focus-visible,
 .menu-container li a:focus-visible {
   outline-offset: -4px;
-}
-.logo-container a:hover::before,
-.logo-container a:focus::before {
-  content: '';
-  position: absolute;
-  top: -2em;
-  right: 2em;
-  bottom: 0.62rem;
-  left: 0;
-  z-index: 20;
 }
 ul {
   list-style: none;
@@ -459,47 +450,6 @@ a.link:visited:not(.active):focus > *,
   display: inline-block;
 }
 
-.toolbar .loginregister {
-  --marg: 1rem;
-  display: flex;
-  flex-flow: row wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5em;
-  font-size: 0.9em;
-  width: 100%;
-}
-.toolbar .loginregister > span {
-  margin-top: var(--marg);
-  flex: 1 0 100%;
-}
-.toolbar .loginregister a.link {
-  width: max-content;
-  margin-top: var(--marg);
-}
-.toolbar .loginregister button.logout {
-  font-size: 0.9em;
-  margin-top: var(--marg);
-  max-width: max-content;
-  padding: 0.5em 0;
-}
-.toolbar .loginregister button.logout:hover,
-.toolbar .loginregister button.logout:focus {
-  outline: dashed 2px red;
-  outline-offset: 6px;
-}
-.toolbar button.logout-all {
-  flex: 0 1 max-content;
-  margin: 1em 0 0 0;
-  font-style: italic;
-  background: none;
-  text-align: left;
-}
-.toolbar button.logout-all:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  background: none;
-}
 .skip-links {
   z-index: 999;
   position: absolute; /*so it shows up over other elements*/
@@ -676,8 +626,6 @@ a.link:visited:not(.active):focus > *,
     flex-flow: row nowrap;
   }
   .logo-container {
-    display: flex;
-    width: 8em;
     justify-content: flex-start;
   }
   .menu-container {
