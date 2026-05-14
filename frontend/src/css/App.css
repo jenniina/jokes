@@ -604,6 +604,34 @@ body .z {
   z-index: 2;
 }
 
+.accordion-container .accordion-btn.open span {
+  display: inline-block;
+}
+.accordion-container .accordion-btn.open span.hidden {
+  display: none;
+}
+.accordion-wrap {
+  gap: 0.5em;
+}
+.info-wrap {
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 0.5em;
+}
+.info-container .accordion-inner {
+  padding: 0.5em 0.3em 0.8em;
+  background-color: var(--color-primary-3);
+  color: var(--color-primary-20);
+  border-radius: 0.5em;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: flex-end;
+  gap: 0.5em;
+}
+.info-container .accordion-inner > button {
+  margin: 0;
+}
+
 @media (min-width: 600px) {
   .card > div {
     --padd: 8%;
@@ -612,7 +640,11 @@ body .z {
   .card.smallpadd > div {
     padding: 1em var(--padd) 0.8em;
   }
+  .info-container .accordion-inner {
+    padding: 0.5em 1em 0.8em;
+  }
 }
+
 .flex {
   display: flex;
   flex-flow: row wrap;
@@ -697,18 +729,6 @@ body .z {
     order: 1;
   }
 }
-.accordion-container .accordion-btn.open span {
-  display: inline-block;
-  /* -webkit-transform: translateY(0.3em) rotate(180deg);
-  -ms-transform: translateY(0.3em) rotate(180deg);
-  -o-transform: translateY(0.3em) rotate(180deg);
-  -moz-transform: translateY(0.3em) rotate(180deg);
-  transform: translateY(0.3em) rotate(180deg); */
-}
-.accordion-container .accordion-btn.open span.hide {
-  display: none;
-}
-
 .required {
   color: red;
   font-size: 1.5em;
@@ -721,12 +741,14 @@ body .z {
   margin-right: auto;
 }
 .medium {
-  max-width: 600px;
+  width: clamp(100px, 600px, calc(90vw - calc(var(--page-padding) * 2) - var(--scrollbar_width)));
+  max-width: clamp(100px, 600px, calc(90vw - calc(var(--page-padding) * 2) - var(--scrollbar_width)));
   margin-left: auto;
   margin-right: auto;
 }
 .narrow {
-  max-width: 400px;
+  width: clamp(100px, 400px, calc(90vw - calc(var(--page-padding) * 2) - var(--scrollbar_width)));
+  max-width: clamp(100px, 400px, calc(90vw - calc(var(--page-padding) * 2) - var(--scrollbar_width)));
   margin-left: auto;
   margin-right: auto;
 }
@@ -1199,4 +1221,7 @@ big > i {
 #root .lower03 {
   margin-top: 0.3rem;
   margin-bottom: -0.3rem;
+}
+#root .hidden {
+  display: none;
 }

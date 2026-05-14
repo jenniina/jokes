@@ -250,257 +250,265 @@ const JokeSubmit = ({
   }, [language, setupTitles])
 
   return (
-    <Accordion
-      text={t('ClickHereToWriteYourOwnJoke')}
-      className="submit"
-      wrapperClass="submit-wrap"
-    >
-      <div className="submit-inner">
-        <h2>{t('SubmitAJoke')}</h2>
-        <p className="textcenter">{t('SubmitAJokeTo')} jokes.jenniina.fi</p>
-        <p className="textcenter mb3">
-          {t('IfTheJokeIsNotPrivateVerificationIsNeeded')}
-        </p>
-        <form onSubmit={handleNewJokeSubmit} className="form-submit-new">
-          <div className="toggle-wrap">
-            <ButtonToggle
-              isChecked={isCheckedJokeType}
-              name="submit-joketype"
-              id="submit-joketype"
-              hideLabel={false}
-              label={`${t('JokeTypeTitle')}: `}
-              className={`${language} submit joketype`}
-              on={t('TwoPart')}
-              off={t('Single')}
-              onChange={handleToggleChangeJokeType}
-              equal={true}
-            />
-            <ButtonToggle
-              isChecked={isCheckedPrivate}
-              name="submit-private"
-              id="submit-private"
-              hideLabel={false}
-              label={`${t('Privacy')}: `}
-              className={`${language} submit private`}
-              on={t('Private')}
-              off={t('Public')}
-              onChange={handleToggleChangePublic}
-              equal={false}
-            />
-            <ButtonToggle
-              isChecked={isCheckedAnonymous}
-              name="submit-anonymous"
-              id="submit-anonymous"
-              hideLabel={false}
-              label={`${t('PublishWithNickname')}: `}
-              className={`${language} submit anonymous`}
-              on={t('Anonymous')}
-              off={t('Nickname')}
-              onChange={handleToggleChangeAnonymous}
-              equal={false}
-            />
-          </div>
-
-          {jokeType === EJokeType.single ? (
-            <label htmlFor="submit-joke-single-input" className="textarea-wrap">
-              <span>{t('Joke')}</span>
-              <textarea
-                name="joke"
-                id="submit-joke-single-input"
-                required
-                rows={5}
-                value={joke}
-                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => {
-                  setJoke(e.target.value)
-                }}
-              />
-            </label>
-          ) : (
-            <>
-              <div className="textarea-wrap">
-                <label htmlFor="submit-setup-input">
-                  <span>{setupTitle}</span>
-                  <textarea
-                    id="submit-setup-input"
-                    name="setup"
-                    required
-                    rows={3}
-                    value={setup}
-                    onChange={(e: ChangeEvent<HTMLTextAreaElement>) => {
-                      setSetup(e.target.value)
-                    }}
-                  />
-                </label>
-              </div>
-              <div className="textarea-wrap">
-                <label htmlFor="submit-delivery-input">
-                  <span>{deliveryTitle}</span>
-                  <textarea
-                    id="submit-delivery-input"
-                    name="delivery"
-                    value={delivery}
-                    onChange={(e: ChangeEvent<HTMLTextAreaElement>) => {
-                      setDelivery(e.target.value)
-                    }}
-                    required
-                    rows={3}
-                  />
-                </label>
-              </div>
-            </>
-          )}
-
-          {categoryByLanguages ? (
-            <>
-              <Select
-                language={language}
-                id="submit-category-select"
-                className="submit"
-                z={4}
-                instructions={`${t('CategoryTitle')}:`}
-                selectAnOption={selectAnOption}
-                value={jokeCategory}
-                options={optionsCategory(categoryByLanguages)}
-                onChange={(o: SelectOption | undefined) => {
-                  setJokeCategory(o)
-                  setSelectedCategory(coerceToECategories(o?.value))
-                }}
-              />
-              <Select
-                language={language}
-                id="jokeCategoryNorrisCategories-submit"
-                className={`category extras narrow ${
-                  hasNorris ? '' : 'hidden'
-                }`}
-                z={3}
-                instructions={`Chuck Norris Category:`}
-                selectAnOption={t('Any')}
-                value={selectedNorrisCategory}
-                options={norrisCategories}
-                onChange={(o) => {
-                  setSelectedNorrisCategory(o)
-                }}
-              />
-            </>
-          ) : (
-            ''
-          )}
-          <Select
-            language={language}
-            id="submit-language"
-            className="submit narrow"
-            z={2}
-            instructions={`${t('JokeLanguage')}:`}
-            options={options(ELanguagesLong)}
-            value={
-              language
-                ? ({
-                    value: ELanguages[languageSubmit],
-                    label: ELanguagesLong[languageSubmit],
-                  } as SelectOption)
-                : undefined
-            }
-            onChange={(o) => {
-              setLanguageSubmit(coerceToELanguages(o?.value))
-            }}
-          />
-
-          <fieldset>
-            <legend>{t('AddWarningTitle')}</legend>
-
-            <div className="checkbox-wrap">
-              <div>
-                <input
-                  type="checkbox"
-                  id="flag-nsfw"
-                  name="nsfw"
-                  value="nsfw"
-                />
-                <label htmlFor="flag-nsfw">
-                  {FlagsLanguage[language].nsfw}
-                </label>
-              </div>
-              <div>
-                <input
-                  type="checkbox"
-                  id="flag-religious"
-                  name="religious"
-                  value="religious"
-                />
-                <label htmlFor="flag-religious">
-                  {FlagsLanguage[language].religious}
-                </label>
-              </div>
-              <div>
-                <input
-                  type="checkbox"
-                  id="flag-political"
-                  name="political"
-                  value="political"
-                />
-                <label htmlFor="flag-political">
-                  {FlagsLanguage[language].political}
-                </label>
-              </div>
-              <div>
-                <input
-                  type="checkbox"
-                  id="flag-racist"
-                  name="racist"
-                  value="racist"
-                />
-                <label htmlFor="flag-racist">
-                  {FlagsLanguage[language].racist}
-                </label>
-              </div>
-              <div>
-                <input
-                  type="checkbox"
-                  id="flag-sexist"
-                  name="sexist"
-                  value="sexist"
-                />
-                <label htmlFor="flag-sexist">
-                  {FlagsLanguage[language].sexist}
-                </label>
-              </div>
-              <div>
-                <input
-                  type="checkbox"
-                  id="flag-explicit"
-                  name="explicit"
-                  value="explicit"
-                />
-                <label htmlFor="flag-explicit">
-                  {FlagsLanguage[language].explicit}
-                </label>
-              </div>
-            </div>
-          </fieldset>
-          <p>
-            {isCheckedPrivate
-              ? t('JokeIsSetToPrivateAndWillOnlyBeSeenByYouAndTheAdministrator')
-              : t(
-                  'JokeIsSetToPublicAndWillNeedVerificationFromAnAdministrator'
-                )}
-            <br />
-            <br />
-            {isCheckedAnonymous
-              ? t('PublishAnonymously')
-              : t('PublishWithNickname')}
+    <div className="submit-wrap">
+      <Accordion
+        text={t('ClickHereToWriteYourOwnJoke')}
+        className="submit"
+        wrapperClass="submit-accordion"
+        hideButton
+      >
+        <div className="submit-inner">
+          <h2>{t('SubmitAJoke')}</h2>
+          <p className="textcenter">{t('SubmitAJokeTo')} jokes.jenniina.fi</p>
+          <p className="textcenter mb3">
+            {t('IfTheJokeIsNotPrivateVerificationIsNeeded')}
           </p>
-          <button type="submit" disabled={saving} id="submit-new-joke">
-            <big>
-              {saving
-                ? t('Saving')
-                : isCheckedPrivate
-                  ? t('Publish')
-                  : t('Send')}
-            </big>
-          </button>
-        </form>
-      </div>
-    </Accordion>
+          <form onSubmit={handleNewJokeSubmit} className="form-submit-new">
+            <div className="toggle-wrap">
+              <ButtonToggle
+                isChecked={isCheckedJokeType}
+                name="submit-joketype"
+                id="submit-joketype"
+                hideLabel={false}
+                label={`${t('JokeTypeTitle')}: `}
+                className={`${language} submit joketype`}
+                on={t('TwoPart')}
+                off={t('Single')}
+                onChange={handleToggleChangeJokeType}
+                equal={true}
+              />
+              <ButtonToggle
+                isChecked={isCheckedPrivate}
+                name="submit-private"
+                id="submit-private"
+                hideLabel={false}
+                label={`${t('Privacy')}: `}
+                className={`${language} submit private`}
+                on={t('Private')}
+                off={t('Public')}
+                onChange={handleToggleChangePublic}
+                equal={false}
+              />
+              <ButtonToggle
+                isChecked={isCheckedAnonymous}
+                name="submit-anonymous"
+                id="submit-anonymous"
+                hideLabel={false}
+                label={`${t('PublishWithNickname')}: `}
+                className={`${language} submit anonymous`}
+                on={t('Anonymous')}
+                off={t('Nickname')}
+                onChange={handleToggleChangeAnonymous}
+                equal={false}
+              />
+            </div>
+
+            {jokeType === EJokeType.single ? (
+              <label
+                htmlFor="submit-joke-single-input"
+                className="textarea-wrap"
+              >
+                <span>{t('Joke')}</span>
+                <textarea
+                  name="joke"
+                  id="submit-joke-single-input"
+                  required
+                  rows={5}
+                  value={joke}
+                  onChange={(e: ChangeEvent<HTMLTextAreaElement>) => {
+                    setJoke(e.target.value)
+                  }}
+                />
+              </label>
+            ) : (
+              <>
+                <div className="textarea-wrap">
+                  <label htmlFor="submit-setup-input">
+                    <span>{setupTitle}</span>
+                    <textarea
+                      id="submit-setup-input"
+                      name="setup"
+                      required
+                      rows={3}
+                      value={setup}
+                      onChange={(e: ChangeEvent<HTMLTextAreaElement>) => {
+                        setSetup(e.target.value)
+                      }}
+                    />
+                  </label>
+                </div>
+                <div className="textarea-wrap">
+                  <label htmlFor="submit-delivery-input">
+                    <span>{deliveryTitle}</span>
+                    <textarea
+                      id="submit-delivery-input"
+                      name="delivery"
+                      value={delivery}
+                      onChange={(e: ChangeEvent<HTMLTextAreaElement>) => {
+                        setDelivery(e.target.value)
+                      }}
+                      required
+                      rows={3}
+                    />
+                  </label>
+                </div>
+              </>
+            )}
+
+            {categoryByLanguages ? (
+              <>
+                <Select
+                  language={language}
+                  id="submit-category-select"
+                  className="submit"
+                  z={4}
+                  instructions={`${t('CategoryTitle')}:`}
+                  selectAnOption={selectAnOption}
+                  value={jokeCategory}
+                  options={optionsCategory(categoryByLanguages)}
+                  onChange={(o: SelectOption | undefined) => {
+                    setJokeCategory(o)
+                    setSelectedCategory(coerceToECategories(o?.value))
+                  }}
+                />
+                <Select
+                  language={language}
+                  id="jokeCategoryNorrisCategories-submit"
+                  className={`category extras narrow ${
+                    hasNorris ? '' : 'hidden'
+                  }`}
+                  z={3}
+                  instructions={`Chuck Norris Category:`}
+                  selectAnOption={t('Any')}
+                  value={selectedNorrisCategory}
+                  options={norrisCategories}
+                  onChange={(o) => {
+                    setSelectedNorrisCategory(o)
+                  }}
+                />
+              </>
+            ) : (
+              ''
+            )}
+            <Select
+              language={language}
+              id="submit-language"
+              className="submit narrow"
+              z={2}
+              instructions={`${t('JokeLanguage')}:`}
+              options={options(ELanguagesLong)}
+              value={
+                language
+                  ? ({
+                      value: ELanguages[languageSubmit],
+                      label: ELanguagesLong[languageSubmit],
+                    } as SelectOption)
+                  : undefined
+              }
+              onChange={(o) => {
+                setLanguageSubmit(coerceToELanguages(o?.value))
+              }}
+            />
+
+            <fieldset>
+              <legend>{t('AddWarningTitle')}</legend>
+
+              <div className="checkbox-wrap">
+                <div>
+                  <input
+                    type="checkbox"
+                    id="flag-nsfw"
+                    name="nsfw"
+                    value="nsfw"
+                  />
+                  <label htmlFor="flag-nsfw">
+                    {FlagsLanguage[language].nsfw}
+                  </label>
+                </div>
+                <div>
+                  <input
+                    type="checkbox"
+                    id="flag-religious"
+                    name="religious"
+                    value="religious"
+                  />
+                  <label htmlFor="flag-religious">
+                    {FlagsLanguage[language].religious}
+                  </label>
+                </div>
+                <div>
+                  <input
+                    type="checkbox"
+                    id="flag-political"
+                    name="political"
+                    value="political"
+                  />
+                  <label htmlFor="flag-political">
+                    {FlagsLanguage[language].political}
+                  </label>
+                </div>
+                <div>
+                  <input
+                    type="checkbox"
+                    id="flag-racist"
+                    name="racist"
+                    value="racist"
+                  />
+                  <label htmlFor="flag-racist">
+                    {FlagsLanguage[language].racist}
+                  </label>
+                </div>
+                <div>
+                  <input
+                    type="checkbox"
+                    id="flag-sexist"
+                    name="sexist"
+                    value="sexist"
+                  />
+                  <label htmlFor="flag-sexist">
+                    {FlagsLanguage[language].sexist}
+                  </label>
+                </div>
+                <div>
+                  <input
+                    type="checkbox"
+                    id="flag-explicit"
+                    name="explicit"
+                    value="explicit"
+                  />
+                  <label htmlFor="flag-explicit">
+                    {FlagsLanguage[language].explicit}
+                  </label>
+                </div>
+              </div>
+            </fieldset>
+            <p>
+              {isCheckedPrivate
+                ? t(
+                    'JokeIsSetToPrivateAndWillOnlyBeSeenByYouAndTheAdministrator'
+                  )
+                : t(
+                    'JokeIsSetToPublicAndWillNeedVerificationFromAnAdministrator'
+                  )}
+              <br />
+              <br />
+              {isCheckedAnonymous
+                ? t('PublishAnonymously')
+                : t('PublishWithNickname')}
+            </p>
+            <button type="submit" disabled={saving} id="submit-new-joke">
+              <big>
+                {saving
+                  ? t('Saving')
+                  : isCheckedPrivate
+                    ? t('Publish')
+                    : t('Send')}
+              </big>
+            </button>
+          </form>
+        </div>
+      </Accordion>
+    </div>
   )
 }
 

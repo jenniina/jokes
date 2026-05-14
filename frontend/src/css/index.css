@@ -332,7 +332,8 @@ strong {
 }
 
 button,
-button.restore {
+button.restore,
+.button {
   border-radius: var(--radius-small);
   --bg-size: auto 260%;
   /* min-width: max-content; */
@@ -388,8 +389,10 @@ button:disabled {
 }
 button,
 button.restore,
+.button,
 #modal-root button,
-#modal-root button.restore {
+#modal-root button.restore,
+#modal-root .button {
   transition-property: border-color, border-width, color, background-color, background-position, outline, outline-offset, opacity, transform, border-radius;
   transition-duration: 0.4s;
   transition-timing-function: ease-in-out;
@@ -397,11 +400,11 @@ button.restore,
 }
 
 button:hover,
-button:focus,
 button:focus-visible,
 button.restore:hover,
-button.restore:focus,
-button.restore:focus-visible {
+button.restore:focus-visible,
+.button:hover,
+.button:focus-visible {
   color: var(--color-primary-1);
   border-color: var(--color-primary-16);
   background-position: 50% 98%;
@@ -418,6 +421,7 @@ input[type='button']:focus,
 input[type='button']:focus-visible,
 body .focus-within:focus-within,
 button.restore:focus-visible,
+.button:focus-visible,
 input[type='submit'].restore:hover,
 input[type='submit'].restore:focus,
 input[type='submit'].restore:focus-visible,
@@ -434,7 +438,8 @@ body .focus-within:focus-within {
 
 @media (min-width: 400px) {
   button,
-  button.restore {
+  button.restore,
+  .button {
     padding: 0.6em 1.2em;
   }
 } /*END media*/

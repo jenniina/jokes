@@ -95,7 +95,7 @@
   margin: -0.3em auto 0.3em;
   height: var(--height);
   width: 100%;
-  padding-right: 0.5rem;
+  max-width: calc(1600px + 1rem);
   background: transparent;
   gap: 0 0.4em;
 }
@@ -110,7 +110,7 @@
   border: 0;
   outline: 0;
   padding: 0;
-  margin: 0;
+  margin: 0 0 0 1em;
   margin-bottom: 0.1em;
   font-family: var(--title-family);
   display: flex;
@@ -665,8 +665,6 @@ a.link:visited:not(.active):focus > *,
     flex-flow: row nowrap;
     justify-content: space-between;
     align-items: flex-end;
-    /* max-width: calc(var(--widest) - calc(var(--page-padding) * 2)); */
-    max-width: calc(100vw - calc(var(--page-padding) * 2));
     height: var(--height);
     margin: 0 auto;
   }
@@ -707,7 +705,7 @@ a.link:visited:not(.active):focus > *,
     height: 100%;
   }
   .main-header button.settings {
-    padding: 0 0.8vw 0.12em;
+    padding: 0;
     font-size: 0.9em;
     word-break: keep-all;
     display: flex;
@@ -791,7 +789,6 @@ a.link:visited:not(.active):focus > *,
   header.main-header button.settings:not(:disabled):hover span,
   header.main-header button.settings:not(:disabled):focus span {
     background-position: 50% 98%;
-    padding: 0.5em 0.6vw 0.1em;
   }
   .menu-container ul li a:hover span,
   .menu-container ul li a:focus span,
@@ -841,7 +838,6 @@ a.link:visited:not(.active):focus > *,
   }
   .main-header button.search,
   .main-header button.settings {
-    padding: 0 1.2rem 0.12em;
     align-items: flex-end;
     flex: 0 0 max-content;
   }

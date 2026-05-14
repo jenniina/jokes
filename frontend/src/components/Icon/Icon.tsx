@@ -11,6 +11,7 @@ type BaseIconProps = {
   height?: string
   width?: string
   title?: string
+  viewBox?: string
   'aria-hidden'?: boolean | 'true' | 'false'
   'aria-label'?: string
 }
@@ -35,6 +36,7 @@ const Icon = ({
   height,
   width,
   title,
+  viewBox,
   'aria-hidden': ariaHidden = 'true',
   'aria-label': ariaLabel,
 }: IconProps) => {
@@ -69,6 +71,7 @@ const Icon = ({
       style={style}
       height={height}
       width={width}
+      {...(viewBox ? { viewBox } : {})}
       aria-hidden={ariaHidden}
       aria-label={ariaLabel}
       title={title}

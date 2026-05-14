@@ -150,6 +150,19 @@
 .joke-container .jokes-wrap {
   border-radius: var(--border-radius);
 }
+.submit-wrap {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+  gap: calc(var(--gap) * 2);
+  margin: 0 auto;
+}
+.submit-wrap > button {
+  max-width: 100%;
+  flex: 1 0 100%;
+  width: 100%;
+}
 button#submit-new-joke {
   flex: 1 0 100%;
   align-self: stretch;
@@ -605,13 +618,6 @@ form.joke > *:not(.toggle) {
 .joke-container .select-container.category:not(.submit).hidden {
   display: none;
 }
-/* .joke-container .select-container.joke-languages:not(.submit) {
-  flex: 0 1 10rem;
-  max-width: 20rem;
-  width: 10rem;
-  margin: 0;
-  gap: calc(var(--gap) / 2);
-} */
 .joke-container .select-container .container,
 .joke-container .input-wrap::before,
 .joke-container .input-wrap.not-required:has(input:valid)::before,
@@ -1267,6 +1273,35 @@ button.blocked-btn.active {
   left: -10%;
   right: 5%;
 }
+.accordion-wrap {
+  position: absolute;
+  top: -1em;
+  right: 0.8em;
+  z-index: 5;
+  width: clamp(100px, 600px, calc(100vw - calc(var(--page-padding) * 2) - var(--scrollbar_width)));
+  display: flex;
+  flex-flow: column nowrap;
+}
+.accordion-wrap > button {
+  font-size: 1.1em;
+  height: 2.4rem;
+  width: 2.4rem;
+  padding: 0;
+  border-radius: 50%;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: center;
+  margin: 0 0 0 auto;
+}
+.accordion-wrap > button i {
+  line-height: 0;
+}
+.info svg.info-icon {
+  font-size: 1.2em;
+  height: 1.2em;
+  width: 1.2em;
+}
 @keyframes fadeInDown {
   0% {
     opacity: 0;
@@ -1437,6 +1472,11 @@ button.blocked-btn.active {
   .joke-container .multiple.container,
   .joke-container button {
     max-width: 20rem;
+  }
+  .submit-wrap > button {
+    max-width: 100%;
+    font-size: 1.5em;
+    padding: 1em 0.2em;
   }
   .joke-container .input-wrap {
     margin-top: 2rem;
