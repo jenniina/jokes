@@ -553,6 +553,48 @@ button.delete:hover {
 form.login {
   margin-bottom: 1rem;
 }
+
+.loginregister {
+  --marg: 1rem;
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+  font-size: 0.9em;
+  width: 100%;
+}
+.loginregister > span {
+  margin-top: var(--marg);
+  flex: 1 0 100%;
+}
+.loginregister a.link {
+  width: max-content;
+  margin-top: var(--marg);
+}
+.loginregister button.logout {
+  font-size: 0.9em;
+  margin-top: var(--marg);
+  max-width: max-content;
+  padding: 0.5em 0;
+}
+.loginregister button.logout:hover,
+.loginregister button.logout:focus {
+  outline: dashed 2px red;
+  outline-offset: 6px;
+}
+button.logout-all {
+  flex: 0 1 max-content;
+  margin: 1em 0 0 0;
+  font-style: italic;
+  background: none;
+  text-align: left;
+}
+button.logout-all:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background: none;
+}
 code {
   display: inline-block;
   font-family: monospace;

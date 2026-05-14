@@ -1,11 +1,13 @@
 import { Route, Routes } from 'react-router-dom'
 import JokesPage from '../../pages/JokesPage'
+import UserEditPage from '../../pages/UserEditPage'
 
 const MainWrapper = () => {
   return (
     <main id="main-content" className="main-content z">
       <Routes>
         <Route path="/" element={<JokesPage type="page" />} />
+        <Route path="/edit" element={<UserEditPage type="page" />} />
         <Route path="*" element={<JokesPage type="page" />} />
       </Routes>
     </main>

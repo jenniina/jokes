@@ -1,0 +1,17 @@
+.edit-user {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.p {
+  margin: 0.4rem 0;
+}
+
+.p-last {
+  margin-bottom: 1rem;
+}
+
+.language {
+  margin-bottom: 0.4rem;
+}

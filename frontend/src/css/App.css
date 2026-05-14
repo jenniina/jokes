@@ -174,39 +174,39 @@ button.reset.link {
 }
 
 .App a:hover,
-.App a:focus,
+.App a:focus-visible,
 .App a:visited:hover,
-.App a:visited:focus,
+.App a:visited:focus-visible,
 .App a:hover > *,
-.App a:focus > *,
+.App a:focus-visible > *,
 .App a:visited:hover > *,
-.App a:visited:focus > *,
+.App a:visited:focus-visible > *,
 button.reset.link:hover,
-button.reset.link:focus,
+button.reset.link:focus-visible,
 button.reset.link:hover > *,
-button.reset.link:focus > * {
+button.reset.link:focus-visible > * {
   color: var(--color-link-highlight);
   text-decoration: underline;
 }
 button.reset.link,
 button.reset.link:hover,
-button.reset.link:focus,
+button.reset.link:focus-visible,
 button.reset.link:hover > *,
-button.reset.link:focus > * {
+button.reset.link:focus-visible > * {
   outline: none;
 }
 .light .App a:hover,
-.light .App a:focus,
+.light .App a:focus-visible,
 .light .App a:visited:hover,
-.light .App a:visited:focus,
+.light .App a:visited:focus-visible,
 .light .App a:hover > *,
-.light .App a:focus > *,
+.light .App a:focus-visible > *,
 .light .App a:visited:hover > *,
-.light .App a:visited:focus > *,
+.light .App a:visited:focus-visible > *,
 .light button.reset.link:hover,
-.light button.reset.link:focus,
+.light button.reset.link:focus-visible,
 .light button.reset.link:hover > *,
-.light button.reset.link:focus > * {
+.light button.reset.link:focus-visible > * {
   color: var(--color-link-highlight);
   background-size: 100% 100%;
 }
@@ -342,7 +342,7 @@ button.reset.link:focus > * {
   box-shadow: 0 0.1em 0.9em -0.5em var(--color-primary-11);
 }
 .nav-sub ul a:hover,
-.nav-sub ul a:focus {
+.nav-sub ul a:focus-visible {
   color: var(--color-primary-15);
   outline-offset: -2px;
   text-decoration: none;
@@ -351,7 +351,7 @@ button.reset.link:focus > * {
   border-bottom-width: 5px;
 }
 .light .nav-sub ul a:hover,
-.light .nav-sub ul a:focus {
+.light .nav-sub ul a:focus-visible {
   color: var(--color-primary-9);
   border-bottom-color: var(--color-secondary-15);
 }
@@ -1175,6 +1175,11 @@ big > i {
 .colors section > div {
   padding-top: 2em;
 }
+.breadcrumbs {
+  font-style: italic;
+  font-size: 0.88em;
+  text-align: center;
+}
 
 #root .p05 {
   padding: 0.5em;
@@ -1224,4 +1229,7 @@ big > i {
 }
 #root .hidden {
   display: none;
+}
+#root .nou {
+  text-decoration: none;
 }
