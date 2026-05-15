@@ -92,7 +92,7 @@ import {
   MdInvertColors,
   MdInvertColorsOff,
   MdOutlineCircle,
-  MdOutlineInfo,
+  MdInfo,
 } from 'react-icons/md'
 import {
   LuCirclePlus,
@@ -142,7 +142,7 @@ import {
   ImShrink2,
   ImCamera,
 } from 'react-icons/im'
-import { GrGraphQl, GrCircleInformation } from 'react-icons/gr'
+import { GrGraphQl } from 'react-icons/gr'
 import { GiAbstract019, GiComb, GiPartyPopper } from 'react-icons/gi'
 import { SiSvgtrace } from 'react-icons/si'
 import {
@@ -275,7 +275,7 @@ export const iconLibraries = {
     MdInvertColors,
     MdInvertColorsOff,
     MdOutlineCircle,
-    MdOutlineInfo,
+    MdInfo,
   },
   lu: {
     LuCirclePlus,
@@ -320,7 +320,6 @@ export const iconLibraries = {
   },
   gr: {
     GrGraphQl,
-    GrCircleInformation,
   },
   gi: {
     GiAbstract019,

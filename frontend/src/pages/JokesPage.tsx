@@ -59,8 +59,8 @@ export default function JokesPage({ type }: { type: string }) {
             text={
               <Icon
                 className={`info-icon ${openAccordion ? 'gray' : ''}`}
-                lib="gr"
-                name="GrCircleInformation"
+                lib="md"
+                name="MdInfo"
                 aria-hidden="true"
               />
             }
