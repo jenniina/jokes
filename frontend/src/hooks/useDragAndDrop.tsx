@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 export interface IClosestItem {
   offset: number
@@ -15,15 +15,20 @@ export const useDragAndDrop = <T extends Item, S extends string>(
   statuses: S[]
 ) => {
   const [isDragging, setIsDragging] = useState(false)
-  const [updatedItems, setUpdatedItems] = useState(initialState)
-
-  useEffect(() => {
-    setUpdatedItems(initialState)
-  }, [initialState])
 
   const storageKeys = useMemo(() => {
-    return statuses?.map(status => `DnD-${status}`)
+    return statuses?.map((status) => `DnD-${status}`)
   }, [statuses])
+
+  const stateKey = useMemo(() => {
+    return JSON.stringify({
+      statuses,
+      initialState: initialState.map((item) => ({
+        id: item.id,
+        status: item.status,
+      })),
+    })
+  }, [initialState, statuses])
 
   const getStoredItems = useCallback((key: string): T[] => {
     if (typeof window === 'undefined') return []
@@ -54,34 +59,61 @@ export const useDragAndDrop = <T extends Item, S extends string>(
     }
   }, [])
 
-  const initializeListItemsByStatus = useCallback(() => {
-    return statuses?.reduce(
+  const createItemsByStatus = useCallback(() => {
+    return statuses.reduce(
       (acc, status, index) => {
         const storedItems = getStoredItems(storageKeys[index])
+        acc[status] =
+          storedItems.length > 0
+            ? storedItems
+            : initialState.filter((item) => item.status === status)
+        return acc
+      },
+      {} as Record<S, T[]>
+    )
+  }, [getStoredItems, initialState, statuses, storageKeys])
+
+  const [listState, setListState] = useState(() => ({
+    key: stateKey,
+    itemsByStatus: createItemsByStatus(),
+  }))
+
+  const itemsByStatus =
+    listState.key === stateKey ? listState.itemsByStatus : createItemsByStatus()
+
+  const updateItemsByStatus = useCallback(
+    (updater: (currentItemsByStatus: Record<S, T[]>) => Record<S, T[]>) => {
+      setListState((prev) => {
+        const currentItemsByStatus =
+          prev.key === stateKey ? prev.itemsByStatus : createItemsByStatus()
+
+        return {
+          key: stateKey,
+          itemsByStatus: updater(currentItemsByStatus),
+        }
+      })
+    },
+    [createItemsByStatus, stateKey]
+  )
+
+  const listItemsByStatus = useMemo(() => {
+    return statuses.reduce(
+      (acc, status, index) => {
         acc[status] = {
-          items:
-            storedItems.length > 0
-              ? storedItems
-              : initialState.filter(item => item.status === status),
+          items: itemsByStatus[status] ?? [],
           setItems: (items: T[]) => {
             setStoredItems(storageKeys[index], items)
-            // setListItemsByStatus(prev => ({
-            //   ...prev,
-            //   [status]: {
-            //     ...prev[status],
-            //     items,
-            //   },
-            // }))
+            updateItemsByStatus((currentItemsByStatus) => ({
+              ...currentItemsByStatus,
+              [status]: items,
+            }))
           },
           removeItems: () => {
             removeStoredItems(storageKeys[index])
-            // setListItemsByStatus(prev => ({
-            //   ...prev,
-            //   [status]: {
-            //     ...prev[status],
-            //     items: [],
-            //   },
-            // }))
+            updateItemsByStatus((currentItemsByStatus) => ({
+              ...currentItemsByStatus,
+              [status]: [],
+            }))
           },
         }
         return acc
@@ -92,172 +124,67 @@ export const useDragAndDrop = <T extends Item, S extends string>(
       >
     )
   }, [
+    itemsByStatus,
+    removeStoredItems,
+    setStoredItems,
     statuses,
     storageKeys,
-    initialState,
-    getStoredItems,
-    setStoredItems,
-    removeStoredItems,
+    updateItemsByStatus,
   ])
-
-  const deepEqual = useCallback((a: T[] | S[], b: T[] | S[]) => {
-    return JSON.stringify(a) === JSON.stringify(b)
-  }, [])
-
-  const [listItemsByStatus, setListItemsByStatus] = useState(
-    initializeListItemsByStatus
-  )
-
-  const prevUpdatedItemsRef = useRef(updatedItems)
-  const prevStatusesRef = useRef(statuses)
-
-  const handleUpdating = useCallback(() => {
-    const prevUpdatedItems = prevUpdatedItemsRef.current
-    const prevStatuses = prevStatusesRef.current
-
-    // Compare previous and current values
-    if (
-      !deepEqual(prevUpdatedItems, updatedItems) ||
-      !deepEqual(prevStatuses, statuses)
-    ) {
-      const newListItemsByStatus = statuses?.reduce(
-        (acc, status, index) => {
-          const items = updatedItems.filter(item => item.status === status)
-          acc[status] = {
-            items,
-            setItems:
-              listItemsByStatus[status]?.setItems ||
-              ((items: T[]) => {
-                setStoredItems(storageKeys[index], items)
-                setListItemsByStatus(prev => ({
-                  ...prev,
-                  [status]: {
-                    ...prev[status],
-                    items,
-                  },
-                }))
-              }),
-            removeItems:
-              listItemsByStatus[status]?.removeItems ||
-              (() => {
-                removeStoredItems(storageKeys[index])
-                setListItemsByStatus(prev => ({
-                  ...prev,
-                  [status]: {
-                    ...prev[status],
-                    items: [],
-                  },
-                }))
-              }),
-          }
-          return acc
-        },
-        {} as Record<
-          S,
-          {
-            items: T[]
-            setItems: (value: T[]) => void
-            removeItems: () => void
-          }
-        >
-      )
-
-      setListItemsByStatus(newListItemsByStatus)
-
-      // Update refs with current values
-      prevUpdatedItemsRef.current = updatedItems
-      prevStatusesRef.current = statuses
-    }
-  }, [
-    updatedItems,
-    statuses,
-    storageKeys,
-    setStoredItems,
-    removeStoredItems,
-    listItemsByStatus,
-    deepEqual,
-  ])
-
-  useEffect(() => {
-    handleUpdating()
-  }, [
-    updatedItems,
-    statuses,
-    storageKeys,
-    setStoredItems,
-    removeStoredItems,
-    handleUpdating,
-  ])
-
-  const handleStoredItems = useCallback(() => {
-    statuses?.forEach((status, index) => {
-      const items = updatedItems?.filter(item => item.status === status)
-      setStoredItems(storageKeys[index], items)
-    })
-  }, [updatedItems, statuses, storageKeys, setStoredItems])
-
-  useEffect(() => {
-    handleStoredItems()
-  }, [updatedItems, statuses, storageKeys, handleStoredItems])
 
   const handleUpdate = useCallback(
     (id: number, newStatus: S, target?: number) => {
-      const oldStatus = Object.keys(listItemsByStatus)?.find(status =>
-        listItemsByStatus?.[status as S]?.items?.find(item => item?.id === id)
+      const oldStatus = Object.keys(listItemsByStatus)?.find((status) =>
+        listItemsByStatus?.[status as S]?.items?.find((item) => item?.id === id)
       ) as S
 
       if (!oldStatus) return
 
       const card = listItemsByStatus?.[oldStatus]?.items?.find(
-        item => item?.id === id
+        (item) => item?.id === id
       )
       const targetIndex = listItemsByStatus?.[newStatus]?.items?.findIndex(
-        item => item?.id === target
+        (item) => item?.id === target
       )
 
       if (!card) return
 
-      // Update card status
-      card.status = newStatus
+      const updatedCard = {
+        ...card,
+        status: newStatus,
+      }
 
-      // Remove card from old status list
       const oldStatusItems = listItemsByStatus?.[oldStatus]?.items?.filter(
         (item: T) => item.id !== id
       )
-      listItemsByStatus?.[oldStatus]?.setItems(oldStatusItems)
-
-      // Create a copy of the new status list
       let newStatusItems = [...listItemsByStatus?.[newStatus]?.items]
-
-      // Remove the card from its old position in the new status list
-      newStatusItems = newStatusItems.filter(item => item.id !== card.id)
-
-      // Insert the card at the correct position in the new status list
+      newStatusItems = newStatusItems.filter(
+        (item) => item.id !== updatedCard.id
+      )
       newStatusItems.splice(
         targetIndex >= 0 ? targetIndex : newStatusItems.length,
         0,
-        card
+        updatedCard
       )
 
-      // Update the new status list
-      listItemsByStatus?.[newStatus]?.setItems(newStatusItems)
+      setStoredItems(storageKeys[statuses.indexOf(oldStatus)], oldStatusItems)
+      setStoredItems(storageKeys[statuses.indexOf(newStatus)], newStatusItems)
 
-      // Update the listItemsByStatus state
-      setListItemsByStatus(prev => ({
-        ...prev,
-        [oldStatus]: {
-          ...prev[oldStatus],
-          items: oldStatusItems,
-        },
-        [newStatus]: {
-          ...prev[newStatus],
-          items: newStatusItems,
-        },
+      updateItemsByStatus((currentItemsByStatus) => ({
+        ...currentItemsByStatus,
+        [oldStatus]: oldStatusItems,
+        [newStatus]: newStatusItems,
       }))
 
       return newStatusItems
     },
-    [listItemsByStatus, setListItemsByStatus]
+    [
+      listItemsByStatus,
+      setStoredItems,
+      statuses,
+      storageKeys,
+      updateItemsByStatus,
+    ]
   )
 
   const handleRenameStatus = useCallback(
@@ -271,30 +198,20 @@ export const useDragAndDrop = <T extends Item, S extends string>(
         return
       }
 
-      // Get the old and new storage keys
       const oldStorageKey = storageKeys[oldStatusIndex]
       const newStorageKey = `DnD-${newStatus}`
 
-      // Update items' status
-      const updatedItems = listItemsByStatus[oldStatus].items.map(item => ({
+      const updatedItems = listItemsByStatus[oldStatus].items.map((item) => ({
         ...item,
         status: newStatus,
       }))
 
-      // Update state
-      setListItemsByStatus(prev => ({
-        ...prev,
-        [oldStatus]: {
-          ...prev[oldStatus],
-          items: [],
-        },
-        [newStatus]: {
-          ...prev[newStatus],
-          items: updatedItems,
-        },
+      updateItemsByStatus((currentItemsByStatus) => ({
+        ...currentItemsByStatus,
+        [oldStatus]: [],
+        [newStatus]: updatedItems,
       }))
 
-      // Update local storage using safe functions
       setStoredItems(newStorageKey, updatedItems)
       removeStoredItems(oldStorageKey)
     },
@@ -304,6 +221,7 @@ export const useDragAndDrop = <T extends Item, S extends string>(
       statuses,
       setStoredItems,
       removeStoredItems,
+      updateItemsByStatus,
     ]
   )
 

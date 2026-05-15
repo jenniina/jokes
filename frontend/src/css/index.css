@@ -383,7 +383,6 @@ button:disabled {
   pointer-events: none;
 }
 .light button.gray:hover,
-.light button.gray:focus,
 .light button.gray:focus-visible {
   background-position: 50% 98%;
 }
@@ -414,19 +413,15 @@ button.restore:focus-visible,
 
 button:focus-visible,
 input[type='submit']:hover,
-input[type='submit']:focus,
 input[type='submit']:focus-visible,
 input[type='button']:hover,
-input[type='button']:focus,
 input[type='button']:focus-visible,
 body .focus-within:focus-within,
 button.restore:focus-visible,
 .button:focus-visible,
 input[type='submit'].restore:hover,
-input[type='submit'].restore:focus,
 input[type='submit'].restore:focus-visible,
 input[type='button'].restore:hover,
-input[type='button'].restore:focus,
 input[type='button'].restore:focus-visible {
   outline: 2px solid currentColor;
   outline-offset: -2px;
@@ -497,7 +492,7 @@ button.close {
   border-radius: var(--radius-medium);
 }
 button.close:hover,
-button.close:focus {
+button.close:focus-visible {
   color: inherit;
 }
 button.close span {
@@ -579,7 +574,7 @@ form.login {
   padding: 0.5em 0;
 }
 .loginregister button.logout:hover,
-.loginregister button.logout:focus {
+.loginregister button.logout:focus-visible {
   outline: dashed 2px red;
   outline-offset: 6px;
 }
@@ -617,12 +612,12 @@ button.reset {
   outline-offset: 0;
 }
 button.reset:hover,
-button.reset:focus {
+button.reset:focus-visible {
   padding: 0.03em 0.06em 0.06em;
   outline-offset: 0;
 }
 button.reset.padding,
 button.reset.padding:hover,
-button.reset.padding:focus {
+button.reset.padding:focus-visible {
   padding: 0.3em 0.6em;
 }

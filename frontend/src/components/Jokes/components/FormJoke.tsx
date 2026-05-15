@@ -21,7 +21,7 @@ interface Props {
   jokeLanguage: ELanguages
   setJokeLanguage: (jokeLanguage: ELanguages) => void
   jokeCategory: ECategories | null
-  setJokeCategory: (jokeCategory: ECategories) => void
+  setJokeCategory: (jokeCategory: ECategories | null) => void
   setQueryValue: (queryValue: string) => void
   optionsCategory: (enumObj: TCategoryByLanguages) => SelectOption[]
   setQuery: (query: string) => void
@@ -185,7 +185,6 @@ const Form = ({
             options={optionsCategory(categoryByLanguages)}
             onChange={(o: SelectOption[]) => {
               setCategoryValues(o)
-              setJokeCategory(o?.map((s) => s.value).join(',') as ECategories)
             }}
           />
         ) : (

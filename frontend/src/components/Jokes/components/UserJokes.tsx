@@ -192,16 +192,15 @@ const UserJokes = ({
     name: string
   }
 
-  const [userJokes, setUserJokes] = useState<IJokeVisible[]>([])
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10)
   const [visibleJokes, setVisibleJokes] = useState<
     Record<IJoke['jokeId'], boolean>
   >({})
-  const [localJokes, setLocalJokes] = useState<boolean>(false)
-  const [filteredJokes, setFilteredJokes] = useState<IJokeVisible[]>(userJokes)
+  const [showLocalJokes, setShowLocalJokes] = useState<boolean>(false)
   const [showBlacklistedJokes, setShowBlacklistedJokes] =
     useState<boolean>(false)
-  const [showUnverifiedJokes, setShowUnverifiedJokes] =
-    useState<boolean>(false)
+  const [showUnverifiedJokes, setShowUnverifiedJokes] = useState<boolean>(false)
   const [fetchedJokes, setFetchedJokes] = useState<IJoke[]>([])
   const [isRandom, setIsRandom] = useState<boolean>(false)
   const [randomTrigger, setRandomTrigger] = useState<number>(0)
@@ -211,18 +210,13 @@ const UserJokes = ({
     ECategories | 'ChuckNorris' | ''
   >('')
   const [selectedLanguage, setSelectedLanguage] = useState<ELanguages | ''>('')
-  const [hasNorris, setHasNorris] = useState(false)
-  const [selectedNorrisCategory, setSelectedNorrisCategory] = useState<
-    SelectOption | undefined
-  >(norrisCategories[0])
+  const [selectedNorrisCategoryValue, setSelectedNorrisCategoryValue] =
+    useState<SelectOption | undefined>(norrisCategories[0])
   const [newJoke, setNewJoke] = useState<IJoke | undefined>(undefined)
   const [jokeLanguage, setJokeLanguage] = useState<ELanguages>(ELanguages.en)
   const [jokeCategory, setJokeCategory] = useState<ECategories>(
     ECategories.Misc
   )
-  const [sortByAge, setSortByAge] = useState<
-    EOrderByAge.newest | EOrderByAge.oldest
-  >(EOrderByAge.newest)
   const [isCheckedNewest, setIsCheckedNewest] = useState<boolean>(true)
   const [latestNumber, setLatestNumber] = useState<number>(3)
   const [latest, setLatest] = useState<boolean>(false)
@@ -232,125 +226,68 @@ const UserJokes = ({
 
   const dispatch = useAppDispatch()
   const isAdmin = (user?.role ?? 0) > 2
+  const localJokes = !userId || showLocalJokes
+  const showBlacklistedView = Boolean(userId) && showBlacklistedJokes
+  const showUnverifiedView = Boolean(userId) && isAdmin && showUnverifiedJokes
+  const normalizedSelectedCategory = String(selectedCategory)
+  const hasNorris =
+    normalizedSelectedCategory === ECategories.ChuckNorris ||
+    normalizedSelectedCategory === 'ChuckNorris'
+  const sortByAge = isCheckedNewest ? EOrderByAge.newest : EOrderByAge.oldest
 
-  const handleUserJokes = useCallback(
-    () => {
-      if (Array.isArray(jokes) && jokes.length > 0) {
-        let updatedJokes = jokes?.map((joke) => {
-          const jokesLanguage = getLanguageLabel(joke.language)
+  const userJokes = useMemo(() => {
+    if (!Array.isArray(jokes) || jokes.length === 0) {
+      return []
+    }
 
-          const authorName =
-            typeof joke.author === 'string'
-              ? (publicUserNames?.[joke.author] ?? '')
-              : ''
+    const updatedJokes = jokes.map((joke) => {
+      const jokesLanguage = getLanguageLabel(joke.language)
+      const authorName =
+        typeof joke.author === 'string'
+          ? (publicUserNames[joke.author] ?? '')
+          : ''
 
-          return {
-            ...joke,
-            visible: false,
-            translatedLanguage: jokesLanguage ?? joke.language,
-            name: joke.anonymous ? '' : authorName,
-          }
-        })
-        updatedJokes = !isCheckedSafemode
-          ? updatedJokes
-              .filter((joke) => joke.safe === false)
-              .sort((a, b) => {
-                return b.user?.length - a.user?.length
-              })
-          : isCheckedSafemode
-            ? updatedJokes
-                .filter((joke) => joke.safe)
-                .sort((a, b) => {
-                  return b.user?.length - a.user?.length
-                })
-            : []
-        setUserJokes(updatedJokes)
+      return {
+        ...joke,
+        visible: false,
+        translatedLanguage: jokesLanguage ?? joke.language,
+        name: joke.anonymous ? '' : authorName,
       }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      jokes,
-      language,
-      isCheckedSafemode,
-      sortBy,
-      sortByAge,
-      isCheckedNewest,
-      getLanguageLabel,
-      publicUserNames,
-    ]
-  )
+    })
 
-  useEffect(() => {
-    handleUserJokes()
-  }, [handleUserJokes])
-
-  const handleSortByAge = () => {
-    setSortByAge(isCheckedNewest ? EOrderByAge.newest : EOrderByAge.oldest)
-  }
-
-  useEffect(() => {
-    handleSortByAge()
-  }, [isCheckedNewest]) // eslint-disable-line react-hooks/exhaustive-deps
+    return updatedJokes
+      .filter((joke) => (isCheckedSafemode ? joke.safe : joke.safe === false))
+      .sort((a, b) => b.user?.length - a.user?.length)
+  }, [jokes, getLanguageLabel, isCheckedSafemode, publicUserNames])
 
   const handleToggleChangeNewest = () => {
+    setCurrentPage(1)
     setIsCheckedNewest((prev) => !prev)
   }
 
-  const handleInitialize = useCallback(async () => {
-    setHasLoadedJokes(false)
-    try {
-      await dispatch(initializeUser())
-      await dispatch(initializeJokes())
-    } finally {
-      setHasLoadedJokes(true)
+  useEffect(() => {
+    let cancelled = false
+
+    void (async () => {
+      try {
+        await dispatch(initializeUser())
+        await dispatch(initializeJokes())
+      } finally {
+        if (!cancelled) {
+          setHasLoadedJokes(true)
+        }
+      }
+    })()
+
+    return () => {
+      cancelled = true
     }
   }, [dispatch])
-
-  useEffect(() => {
-    void handleInitialize()
-  }, [handleInitialize])
-
-  const handleHasNorris = useCallback(() => {
-    const norrisExists = selectedCategory === ECategories.ChuckNorris
-    setHasNorris(norrisExists)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    handleHasNorris()
-  }, [selectedCategory, handleHasNorris])
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setCurrentPage(1)
     setSearchTerm(event.target.value)
   }
-
-  const resetFilters = () => {
-    setSelectedCategory('')
-    setSelectedLanguage('')
-    setSelectedNorrisCategory(norrisOptions[0])
-    setSearchTerm('')
-    setIsRandom(false)
-    setRandomTrigger((prev) => prev + 1)
-    setSortBy(ESortBy_en.popularity)
-    setCurrentPage(1)
-    setIsCheckedSafemode(true)
-  }
-
-  const handleSelectChange = (o: SelectOption) => {
-    setSelectedCategory(o.value as ECategories)
-  }
-
-  const handleLocalJokes = useCallback(() => {
-    if (!userId) {
-      setLocalJokes(true)
-    } else {
-      setLocalJokes(false)
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    handleLocalJokes()
-  }, [userId, handleLocalJokes])
 
   const handleVisibility = (jokeId: IJoke['jokeId']) => {
     setVisibleJokes((prevVisibleJokes) => ({
@@ -359,144 +296,6 @@ const UserJokes = ({
     }))
   }
 
-  const handleFilterJokes = useCallback(
-    () => {
-      setCurrentPage(1)
-      let newFilteredJokes = [...userJokes]
-      if (sortBy === ESortBy_en.age) {
-        newFilteredJokes = [...userJokes]?.sort((a, b) => {
-          const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0
-          const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0
-          return sortByAge === EOrderByAge.newest
-            ? timeB - timeA
-            : timeA - timeB
-        })
-      }
-      newFilteredJokes = newFilteredJokes?.filter((joke) => {
-        if (joke) {
-          const searchTermMatches =
-            ('joke' in joke
-              ? joke.joke?.toLowerCase().includes(searchTerm.toLowerCase())
-              : false) ||
-            ('setup' in joke
-              ? joke.setup?.toLowerCase().includes(searchTerm.toLowerCase())
-              : false) ||
-            ('delivery' in joke
-              ? joke.delivery?.toLowerCase().includes(searchTerm.toLowerCase())
-              : false) ||
-            joke.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            joke.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (joke.subCategories?.includes(searchTerm.toLowerCase()) ?? false) ||
-            joke.translatedLanguage
-              ?.toLowerCase()
-              .includes(searchTerm.toLowerCase())
-
-          const categoryMatches = selectedCategory
-            ? joke.category === selectedCategory
-            : true
-
-          const languageMatches =
-            selectedLanguage !== '' ? joke.language === selectedLanguage : true
-
-          const norrisCategoryMatches =
-            selectedNorrisCategory?.value !== '' &&
-            selectedNorrisCategory?.value !== 'any'
-              ? joke.subCategories?.includes(
-                  String(selectedNorrisCategory?.value ?? '')
-                )
-              : true
-
-          if (
-            (localJokes && joke.private === false && joke.verified === true) ||
-            (localJokes && joke.private === undefined)
-          ) {
-            return (
-              languageMatches &&
-              categoryMatches &&
-              norrisCategoryMatches &&
-              searchTermMatches
-            )
-          } else if (!localJokes && joke.user?.includes(userId)) {
-            return (
-              languageMatches &&
-              categoryMatches &&
-              norrisCategoryMatches &&
-              searchTermMatches
-            )
-          } else {
-            return false
-          }
-        }
-      })
-
-      newFilteredJokes = newFilteredJokes?.filter((joke) => {
-        // Check if the joke is blacklisted
-        const isBlacklisted = user?.blacklistedJokes?.some(
-          (blacklistedJoke: IBlacklistedJoke) =>
-            blacklistedJoke.jokeId === joke.jokeId &&
-            blacklistedJoke.language === joke.language
-        )
-        // Return true if the joke is not blacklisted
-        return !isBlacklisted
-      })
-
-      if (sortBy === ESortBy_en.popularity) {
-        newFilteredJokes = newFilteredJokes?.sort((a, b) => {
-          return b.user?.length - a.user?.length
-        })
-      }
-
-      if (sortBy === ESortBy_en.category) {
-        newFilteredJokes = newFilteredJokes?.sort((a, b) => {
-          return a.category > b.category ? 1 : -1
-        })
-      }
-      if (sortBy === ESortBy_en.language) {
-        newFilteredJokes = newFilteredJokes?.sort((a, b) => {
-          return a.translatedLanguage > b.translatedLanguage ? 1 : -1
-        })
-      }
-      if (sortBy === ESortBy_en.name) {
-        newFilteredJokes = newFilteredJokes?.sort((a, b) => {
-          return a.name > b.name ? 1 : -1
-        })
-      }
-      const latestJokes = newFilteredJokes.slice(0, latestNumber)
-
-      if (isRandom && newFilteredJokes.length > 0) {
-        const randomJoke =
-          newFilteredJokes[Math.floor(Math.random() * newFilteredJokes.length)]
-        setFilteredJokes([randomJoke])
-      } else {
-        if (latest) {
-          setFilteredJokes(latestJokes)
-        } else {
-          setFilteredJokes(newFilteredJokes)
-        }
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      localJokes,
-      userJokes,
-      selectedCategory,
-      selectedLanguage,
-      selectedNorrisCategory,
-      searchTerm,
-      isRandom,
-      randomTrigger,
-      sortByAge,
-      sortBy,
-      latest,
-      latestNumber,
-      ,
-    ]
-  )
-
-  useEffect(() => {
-    handleFilterJokes()
-  }, [handleFilterJokes])
-
   const handleCategoryChange = (category: string) => {
     let modifiedCategory: ECategories | '' = category as ECategories | ''
     if (category === 'Chuck Norris') {
@@ -504,6 +303,7 @@ const UserJokes = ({
     } else if (category === 'Dad Joke') {
       modifiedCategory = 'DadJoke' as ECategories
     }
+    setCurrentPage(1)
     setSelectedCategory(modifiedCategory)
   }
 
@@ -572,14 +372,154 @@ const UserJokes = ({
     value: 'any',
   })
 
-  const handleSelectedNorrisCategory = useCallback(() => {
-    setSelectedNorrisCategory(norrisOptions[0])
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  const selectedNorrisCategory = useMemo(() => {
+    if (norrisOptions.length === 0) {
+      return undefined
+    }
 
-  useEffect(() => {
-    handleSelectedNorrisCategory()
-  }, [language, handleSelectedNorrisCategory])
+    if (!selectedNorrisCategoryValue) {
+      return norrisOptions[0]
+    }
+
+    return (
+      norrisOptions.find(
+        (option) => option.value === selectedNorrisCategoryValue.value
+      ) ?? norrisOptions[0]
+    )
+  }, [norrisOptions, selectedNorrisCategoryValue])
+
+  const filteredJokes = useMemo(() => {
+    let nextFilteredJokes = [...userJokes]
+
+    if (sortBy === ESortBy_en.age) {
+      nextFilteredJokes = [...userJokes].sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+        return sortByAge === EOrderByAge.newest ? timeB - timeA : timeA - timeB
+      })
+    }
+
+    nextFilteredJokes = nextFilteredJokes.filter((joke) => {
+      const normalizedSearchTerm = searchTerm.toLowerCase()
+      const jokeText = 'joke' in joke ? joke.joke?.toLowerCase() : undefined
+      const setupText = 'setup' in joke ? joke.setup?.toLowerCase() : undefined
+      const deliveryText =
+        'delivery' in joke ? joke.delivery?.toLowerCase() : undefined
+      const selectedNorrisCategoryValue = selectedNorrisCategory?.value
+      const searchTermMatches =
+        jokeText?.includes(normalizedSearchTerm) ??
+        setupText?.includes(normalizedSearchTerm) ??
+        deliveryText?.includes(normalizedSearchTerm) ??
+        joke.name?.toLowerCase().includes(normalizedSearchTerm) ??
+        joke.category?.toLowerCase().includes(normalizedSearchTerm) ??
+        joke.subCategories?.includes(normalizedSearchTerm) ??
+        joke.translatedLanguage?.toLowerCase().includes(normalizedSearchTerm) ??
+        false
+
+      const categoryMatches = selectedCategory
+        ? joke.category === selectedCategory
+        : true
+      const languageMatches =
+        selectedLanguage !== '' ? joke.language === selectedLanguage : true
+      const norrisCategoryMatches =
+        selectedNorrisCategoryValue !== '' &&
+        selectedNorrisCategoryValue !== 'any'
+          ? joke.subCategories?.includes(String(selectedNorrisCategoryValue))
+          : true
+
+      if (
+        (localJokes && joke.private === false && joke.verified === true) ||
+        (localJokes && joke.private === undefined)
+      ) {
+        return (
+          languageMatches &&
+          categoryMatches &&
+          norrisCategoryMatches &&
+          searchTermMatches
+        )
+      }
+
+      if (!localJokes && joke.user?.includes(userId)) {
+        return (
+          languageMatches &&
+          categoryMatches &&
+          norrisCategoryMatches &&
+          searchTermMatches
+        )
+      }
+
+      return false
+    })
+
+    nextFilteredJokes = nextFilteredJokes.filter((joke) => {
+      const isBlacklisted = user?.blacklistedJokes?.some(
+        (blacklistedJoke: IBlacklistedJoke) =>
+          blacklistedJoke.jokeId === joke.jokeId &&
+          blacklistedJoke.language === joke.language
+      )
+
+      return !isBlacklisted
+    })
+
+    if (sortBy === ESortBy_en.popularity) {
+      nextFilteredJokes = nextFilteredJokes.sort(
+        (a, b) => b.user?.length - a.user?.length
+      )
+    }
+
+    if (sortBy === ESortBy_en.category) {
+      nextFilteredJokes = nextFilteredJokes.sort((a, b) =>
+        a.category > b.category ? 1 : -1
+      )
+    }
+
+    if (sortBy === ESortBy_en.language) {
+      nextFilteredJokes = nextFilteredJokes.sort((a, b) =>
+        a.translatedLanguage > b.translatedLanguage ? 1 : -1
+      )
+    }
+
+    if (sortBy === ESortBy_en.name) {
+      nextFilteredJokes = nextFilteredJokes.sort((a, b) =>
+        a.name > b.name ? 1 : -1
+      )
+    }
+
+    if (isRandom && nextFilteredJokes.length > 0) {
+      const randomJoke =
+        nextFilteredJokes[Math.floor(Math.random() * nextFilteredJokes.length)]
+      return [randomJoke]
+    }
+
+    return latest ? nextFilteredJokes.slice(0, latestNumber) : nextFilteredJokes
+  }, [
+    isRandom,
+    latest,
+    latestNumber,
+    localJokes,
+    randomTrigger,
+    searchTerm,
+    selectedCategory,
+    selectedLanguage,
+    selectedNorrisCategory,
+    sortBy,
+    sortByAge,
+    user?.blacklistedJokes,
+    userId,
+    userJokes,
+  ])
+
+  const resetFilters = () => {
+    setSelectedCategory('')
+    setSelectedLanguage('')
+    setSelectedNorrisCategoryValue(norrisOptions[0])
+    setSearchTerm('')
+    setIsRandom(false)
+    setRandomTrigger((prev) => prev + 1)
+    setSortBy(ESortBy_en.popularity)
+    setCurrentPage(1)
+    setIsCheckedSafemode(true)
+  }
 
   //  https://v2.jokeapi.dev/joke/Any?idRange=3&lang={language}&format=json
 
@@ -722,31 +662,14 @@ const UserJokes = ({
     }
   })
 
-  useEffect(() => {
-    if (!userId) {
-      setShowBlacklistedJokes(false)
-      setShowUnverifiedJokes(false)
-    }
-  }, [userId])
-
-  useEffect(() => {
-    if (!isAdmin) {
-      setShowUnverifiedJokes(false)
-    }
-  }, [isAdmin])
-
-  const [currentPage, setCurrentPage] = useState<number>(1)
-  const [itemsPerPage, setItemsPerPage] = useState<number>(10)
-  const [leftPage, setLeftPage] = useState<number>(1)
-  const [rightPage, setRightPage] = useState<number>(3)
-
-  useEffect(() => {
-    if (!currentPage) {
-      setCurrentPage(1)
-    }
-  }, [currentPage])
-
-  const indexOfLastItem = currentPage * itemsPerPage
+  const safeCurrentPage =
+    filteredJokes.length === 0
+      ? 1
+      : Math.min(
+          Math.max(currentPage, 1),
+          Math.ceil(filteredJokes.length / itemsPerPage)
+        )
+  const indexOfLastItem = safeCurrentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
   const currentItems = filteredJokes?.slice(indexOfFirstItem, indexOfLastItem)
 
@@ -758,57 +681,37 @@ const UserJokes = ({
     return pageNumbers
   }, [filteredJokes, itemsPerPage])
 
-  const visiblePageNumbers = pageNumbers?.slice(leftPage - 1, rightPage)
-
-  const pagehumbersLength = pageNumbers?.length
-
-  const handlePageChange = useCallback(
-    (pageNumber: number, scroll: boolean) => {
-      setCurrentPage(pageNumber)
-      if (pageNumber <= 2) {
-        setLeftPage(1)
-        setRightPage(3)
-      } else if (pageNumber >= pagehumbersLength - 1) {
-        setLeftPage(pagehumbersLength - 2)
-        setRightPage(pagehumbersLength)
-      } else {
-        setLeftPage(pageNumber - 1)
-        setRightPage(pageNumber + 1)
-      }
-      if (localStart.current && scroll) {
-        requestAnimationFrame(() => {
-          if (!localStart.current) return
-          const top =
-            localStart.current.getBoundingClientRect().top +
-            window.scrollY -
-            260
-          window.scrollTo({ top, behavior: 'smooth' })
-        })
-      }
-    },
-    [pagehumbersLength]
-  )
-
-  useEffect(() => {
-    if (currentPage > pageNumbers.length) {
-      setCurrentPage(1)
+  const visiblePageNumbers = useMemo(() => {
+    if (pageNumbers.length <= 3) {
+      return pageNumbers
     }
-  }, [pageNumbers, currentPage])
 
-  useEffect(() => {
-    handlePageChange(1, false)
-    setShowBlacklistedJokes(false)
-  }, [localJokes, handlePageChange])
+    if (safeCurrentPage <= 2) {
+      return pageNumbers.slice(0, 3)
+    }
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text).then(
-      function () {
-        void dispatch(notify(`${t('JokeCopiedToClipboard')}`, false, 3))
-      },
-      function () {
-        void dispatch(notify(`${t('FailedToCopyJokeToClipboard')}`, true, 3))
-      }
-    )
+    if (safeCurrentPage >= pageNumbers.length - 1) {
+      return pageNumbers.slice(-3)
+    }
+
+    return pageNumbers.slice(safeCurrentPage - 2, safeCurrentPage + 1)
+  }, [pageNumbers, safeCurrentPage])
+
+  const handlePageChange = (pageNumber: number, scroll: boolean) => {
+    const nextPage =
+      pageNumbers.length === 0
+        ? 1
+        : Math.min(Math.max(pageNumber, 1), pageNumbers.length)
+    setCurrentPage(nextPage)
+
+    if (localStart.current && scroll) {
+      requestAnimationFrame(() => {
+        if (!localStart.current) return
+        const top =
+          localStart.current.getBoundingClientRect().top + window.scrollY - 260
+        window.scrollTo({ top, behavior: 'smooth' })
+      })
+    }
   }
 
   const pagination = (index: number) => (
@@ -816,7 +719,7 @@ const UserJokes = ({
       {pageNumbers?.length > 1 && (
         <div>
           <span>
-            {currentPage} / {pageNumbers?.length}
+            {safeCurrentPage} / {pageNumbers?.length}
           </span>
         </div>
       )}
@@ -824,9 +727,9 @@ const UserJokes = ({
         <div className="chevrons-wrap back">
           <button
             className={`inner-nav-btn first tooltip-wrap ${
-              currentPage === 1 ? 'disabled' : ''
+              safeCurrentPage === 1 ? 'disabled' : ''
             } ${pageNumbers?.length <= 3 ? 'hidden' : ''}`}
-            disabled={currentPage === 1}
+            disabled={safeCurrentPage === 1}
             onClick={() => handlePageChange(1, true)}
           >
             <Icon lib="bi" name="BiChevronsLeft" />{' '}
@@ -836,10 +739,10 @@ const UserJokes = ({
           </button>
           <button
             className={`inner-nav-btn back tooltip-wrap ${
-              currentPage === 1 ? 'disabled' : ''
+              safeCurrentPage === 1 ? 'disabled' : ''
             } ${pageNumbers?.length <= 3 ? 'hidden' : ''}`}
-            disabled={currentPage === 1}
-            onClick={() => handlePageChange(currentPage - 1, true)}
+            disabled={safeCurrentPage === 1}
+            onClick={() => handlePageChange(safeCurrentPage - 1, true)}
           >
             <Icon lib="bi" name="BiChevronLeft" />{' '}
             <span className="tooltip narrow2 below right">{t('Back')}</span>
@@ -857,7 +760,7 @@ const UserJokes = ({
                     : number > 999
                       ? 'over999'
                       : ''
-              } ${number === currentPage ? 'active' : ''}`}
+              } ${number === safeCurrentPage ? 'active' : ''}`}
               onClick={() => handlePageChange(number, true)}
             >
               <span>{number}</span>
@@ -867,19 +770,19 @@ const UserJokes = ({
         <div className="chevrons-wrap forward">
           <button
             className={`inner-nav-btn forward tooltip-wrap ${
-              currentPage === pageNumbers?.length ? 'disabled' : ''
+              safeCurrentPage === pageNumbers?.length ? 'disabled' : ''
             } ${pageNumbers?.length <= 3 ? 'hidden' : ''}`}
-            disabled={currentPage === pageNumbers?.length}
-            onClick={() => handlePageChange(currentPage + 1, true)}
+            disabled={safeCurrentPage === pageNumbers?.length}
+            onClick={() => handlePageChange(safeCurrentPage + 1, true)}
           >
             <Icon lib="bi" name="BiChevronRight" />{' '}
             <span className="tooltip narrow2 below left">{t('Next')}</span>
           </button>
           <button
             className={`inner-nav-btn last tooltip-wrap ${
-              currentPage === pageNumbers?.length ? 'disabled' : ''
+              safeCurrentPage === pageNumbers?.length ? 'disabled' : ''
             } ${pageNumbers?.length <= 3 ? 'hidden' : ''}`}
-            disabled={currentPage === pageNumbers?.length}
+            disabled={safeCurrentPage === pageNumbers?.length}
             onClick={() => handlePageChange(pageNumbers?.length, true)}
           >
             <Icon lib="bi" name="BiChevronsRight" />
@@ -899,11 +802,12 @@ const UserJokes = ({
           min="1"
           max="100"
           defaultValue={itemsPerPage}
-          onChange={(e) =>
+          onChange={(e) => {
+            setCurrentPage(1)
             setItemsPerPage(
               e.target.valueAsNumber > 0 ? e.target.valueAsNumber : 1
             )
-          }
+          }}
         />{' '}
         <span id="items-per-page">{t('PerPage')}</span>{' '}
       </div>
@@ -915,12 +819,13 @@ const UserJokes = ({
         <div className="local-saved-wrap">
           <button
             className={`btn${
-              localJokes && !showBlacklistedJokes && !showUnverifiedJokes
+              localJokes && !showBlacklistedView && !showUnverifiedView
                 ? ' active'
                 : ''
             }`}
             onClick={() => {
-              setLocalJokes(true)
+              setCurrentPage(1)
+              setShowLocalJokes(true)
               setShowBlacklistedJokes(false)
               setShowUnverifiedJokes(false)
             }}
@@ -929,12 +834,13 @@ const UserJokes = ({
           </button>
           <button
             className={`btn${
-              !localJokes && !showBlacklistedJokes && !showUnverifiedJokes
+              !localJokes && !showBlacklistedView && !showUnverifiedView
                 ? ' active'
                 : ''
             }`}
             onClick={() => {
-              setLocalJokes(false)
+              setCurrentPage(1)
+              setShowLocalJokes(false)
               setShowBlacklistedJokes(false)
               setShowUnverifiedJokes(false)
             }}
@@ -943,8 +849,9 @@ const UserJokes = ({
           </button>
           {isAdmin && (
             <button
-              className={`btn${showUnverifiedJokes ? ' active' : ''}`}
+              className={`btn${showUnverifiedView ? ' active' : ''}`}
               onClick={() => {
+                setCurrentPage(1)
                 setShowUnverifiedJokes(true)
                 setShowBlacklistedJokes(false)
               }}
@@ -957,14 +864,14 @@ const UserJokes = ({
       <div className="saved-inner">
         <div className="filler"></div>
         <div>
-          {showUnverifiedJokes ? (
+          {showUnverifiedView ? (
             <Unverified
               user={user}
               getCategoryInLanguage={getCategoryInLanguage}
             />
           ) : (
             <>
-              {!showBlacklistedJokes && (
+              {!showBlacklistedView && (
                 <>
                   <h2>{localJokes ? t('LocalJokes') : t('YourSavedJokes')}</h2>
                   {localJokes && (
@@ -1070,7 +977,10 @@ const UserJokes = ({
                             { label: t('SelectACategory'), value: '' },
                             ...(Object.values(ECategories).map((category) => {
                               return {
-                                label: getCategoryInLanguage(category, language),
+                                label: getCategoryInLanguage(
+                                  category,
+                                  language
+                                ),
                                 value: category,
                               }
                             }) as SelectOption[]),
@@ -1087,8 +997,6 @@ const UserJokes = ({
                               : { label: t('SelectACategory'), value: '' }
                           }
                           onChange={(o) => {
-                            setSelectedCategory((o?.value as ECategories) ?? '')
-                            if (o) handleSelectChange(o)
                             handleCategoryChange(String(o?.value ?? ''))
                           }}
                         />
@@ -1106,7 +1014,8 @@ const UserJokes = ({
                           value={selectedNorrisCategory}
                           options={norrisOptions}
                           onChange={(o) => {
-                            setSelectedNorrisCategory(o)
+                            setCurrentPage(1)
+                            setSelectedNorrisCategoryValue(o)
                           }}
                         />
                       </div>
@@ -1179,7 +1088,7 @@ const UserJokes = ({
                         onClick={() => {
                           setIsRandom(false)
                           setShowBlacklistedJokes(false)
-                          setSortByAge(EOrderByAge.newest)
+                          setIsCheckedNewest(true)
                           setSortBy(ESortBy_en.age)
                           setLatest(true)
                         }}
@@ -1239,7 +1148,8 @@ const UserJokes = ({
                   >
                     {showBlacklistedJokes ? (
                       <>
-                        {t('HideBlockedJokes')} <Icon lib="im" name="ImBlocked" />
+                        {t('HideBlockedJokes')}{' '}
+                        <Icon lib="im" name="ImBlocked" />
                       </>
                     ) : (
                       <>
@@ -1255,7 +1165,9 @@ const UserJokes = ({
               {/* Pagination scroll anchor (always present) */}
               <div ref={localStart} />
 
-              {user && showBlacklistedJokes && filteredFetchedJokes?.length > 0 ? (
+              {user &&
+              showBlacklistedJokes &&
+              filteredFetchedJokes?.length > 0 ? (
                 <div className="blocked-controls-wrap">
                   <div className="input-wrap search-blacklist">
                     <label htmlFor="searchBlacklistedJokes">
@@ -1311,529 +1223,556 @@ const UserJokes = ({
                     </li>
                   ))
                 ) : currentItems && currentItems?.length > 0 ? (
-              currentItems?.map((joke: IJokeVisible) => {
-                const { ...restOfJoke } = joke
-                return (
-                  <li key={joke._id}>
-                    <div className="primary-wrap">
-                      {joke.type === EJokeType.single ? (
-                        <p className="">{joke.joke}</p>
-                      ) : (
-                        <div>
-                          <p className="">{joke.setup}</p>
-                          <p>
-                            {joke.delivery ? (
-                              <button
-                                type="button"
-                                onClick={() => handleVisibility(joke.jokeId)}
-                                className={`delivery ${
-                                  visibleJokes[joke.jokeId] ? 'reveal' : ''
-                                }`}
-                              >
-                                <span
-                                  {...(visibleJokes[joke.jokeId]
-                                    ? { 'aria-hidden': true }
-                                    : { 'aria-hidden': false })}
-                                >
-                                  <Icon lib="bi" name="BiChevronsRight" />{' '}
-                                  {t('ClickToReveal')}{' '}
-                                  <Icon lib="bi" name="BiChevronsLeft" />
-                                </span>
-                                <p aria-live="assertive">
-                                  {visibleJokes[joke.jokeId]
-                                    ? joke.delivery
-                                    : ''}
-                                </p>
-                              </button>
+                  currentItems?.map((joke: IJokeVisible) => {
+                    const { ...restOfJoke } = joke
+                    return (
+                      <li key={joke._id}>
+                        <div className="primary-wrap">
+                          {joke.type === EJokeType.single ? (
+                            <p className="">{joke.joke}</p>
+                          ) : (
+                            <div>
+                              <p className="">{joke.setup}</p>
+                              <p>
+                                {joke.delivery ? (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleVisibility(joke.jokeId)
+                                    }
+                                    className={`delivery ${
+                                      visibleJokes[joke.jokeId] ? 'reveal' : ''
+                                    }`}
+                                  >
+                                    <span
+                                      {...(visibleJokes[joke.jokeId]
+                                        ? { 'aria-hidden': true }
+                                        : { 'aria-hidden': false })}
+                                    >
+                                      <Icon lib="bi" name="BiChevronsRight" />{' '}
+                                      {t('ClickToReveal')}{' '}
+                                      <Icon lib="bi" name="BiChevronsLeft" />
+                                    </span>
+                                    <p aria-live="assertive">
+                                      {visibleJokes[joke.jokeId]
+                                        ? joke.delivery
+                                        : ''}
+                                    </p>
+                                  </button>
+                                ) : (
+                                  ''
+                                )}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="secondary-wrap">
+                          <div>
+                            <span>
+                              {t('CategoryTitle')}:{' '}
+                              {getCategoryInLanguage(joke.category, language)}{' '}
+                              {joke.subCategories &&
+                              joke.subCategories?.length > 0 &&
+                              joke.subCategories?.find(
+                                (category) => category !== 'any'
+                              ) ? (
+                                <>
+                                  (
+                                  {joke.subCategories
+                                    ?.filter((category) => category !== 'any')
+                                    ?.map((category) => {
+                                      return (
+                                        norrisCat[
+                                          category as keyof typeof norrisCat
+                                        ][language].toLowerCase() ?? category
+                                      )
+                                    })
+                                    .join(', ')}
+                                  )
+                                </>
+                              ) : (
+                                ''
+                              )}
+                            </span>
+                            <span>
+                              {translateWordLanguage}:{' '}
+                              {joke.translatedLanguage ??
+                                getLanguageLabel(joke.language)}
+                            </span>
+                            {joke.anonymous ? (
+                              <span>{t('Anonymous')} </span>
+                            ) : joke.anonymous === false ? (
+                              <span>
+                                {t('Author')}: {joke.name ?? ''}
+                              </span>
                             ) : (
                               ''
                             )}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    <div className="secondary-wrap">
-                      <div>
-                        <span>
-                          {t('CategoryTitle')}:{' '}
-                          {getCategoryInLanguage(joke.category, language)}{' '}
-                          {joke.subCategories &&
-                          joke.subCategories?.length > 0 &&
-                          joke.subCategories?.find(
-                            (category) => category !== 'any'
-                          ) ? (
-                            <>
-                              (
-                              {joke.subCategories
-                                ?.filter((category) => category !== 'any')
-                                ?.map((category) => {
-                                  return (
-                                    norrisCat[
-                                      category as keyof typeof norrisCat
-                                    ][language].toLowerCase() ?? category
-                                  )
-                                })
-                                .join(', ')}
-                              )
-                            </>
-                          ) : (
-                            ''
-                          )}
-                        </span>
-                        <span>
-                          {translateWordLanguage}:{' '}
-                          {joke.translatedLanguage ??
-                            getLanguageLabel(joke.language)}
-                        </span>
-                        {joke.anonymous ? (
-                          <span>{t('Anonymous')} </span>
-                        ) : joke.anonymous === false ? (
-                          <span>
-                            {t('Author')}: {joke.name ?? ''}
-                          </span>
-                        ) : (
-                          ''
-                        )}
-                        {!localJokes && userId && joke.private ? (
-                          <span>{t('Private')}</span>
-                        ) : !localJokes && userId && joke.private === false ? (
-                          <span>{t('Public')}</span>
-                        ) : (
-                          ''
-                        )}
-                        {joke.private === false && joke.verified === false && (
-                          <span>{t('PendingVerification')}</span>
-                        )}
+                            {!localJokes && userId && joke.private ? (
+                              <span>{t('Private')}</span>
+                            ) : !localJokes &&
+                              userId &&
+                              joke.private === false ? (
+                              <span>{t('Public')}</span>
+                            ) : (
+                              ''
+                            )}
+                            {joke.private === false &&
+                              joke.verified === false && (
+                                <span>{t('PendingVerification')}</span>
+                              )}
 
-                        {joke.user?.length > 1 && (
-                          <span>
-                            {t('SavedBy')} {joke.user?.length}
-                          </span>
-                        )}
-                      </div>
+                            {joke.user?.length > 1 && (
+                              <span>
+                                {t('SavedBy')} {joke.user?.length}
+                              </span>
+                            )}
+                          </div>
 
-                      <div>
-                        {userId && joke.user?.includes(userId) && (
-                          <form
-                            onSubmit={
-                              joke.type === EJokeType.single
-                                ? handleDelete(joke?._id, joke?.joke)
-                                : handleDelete(joke?._id, joke?.setup)
-                            }
-                            className="button-wrap"
-                          >
-                            <button
-                              type="submit"
-                              disabled={sending}
-                              className="delete danger"
-                            >
-                              {joke.user?.length > 1
-                                ? t('Remove')
-                                : t('Delete')}
-                            </button>
-                          </form>
-                        )}
-                        {userId &&
-                          joke.author !== userId &&
-                          !joke.user?.includes(userId) && (
-                            <button
-                              onClick={() =>
-                                void handleBlacklistUpdate(
-                                  joke.jokeId,
-                                  joke.language,
-                                  joke.category === ECategories.ChuckNorris &&
-                                    joke.type === EJokeType.single
-                                    ? joke.joke
-                                    : undefined
-                                )
-                              }
-                              className="delete danger"
-                            >
-                              {t('Block')}
-                            </button>
-                          )}
-
-                        {!joke.user?.includes(userId) && (
-                          <button
-                            onClick={() => handleJokeSave(joke._id)}
-                            className="save"
-                          >
-                            {t('SaveJoke')} <Icon lib="md" name="MdSave" />
-                          </button>
-                        )}
-
-                        <CopyToClipboard
-                          value={
-                            joke.type === EJokeType.single
-                              ? joke.joke
-                              : joke.setup + ' \n' + joke.delivery
-                          }
-                          restore
-                          label={t('Copy')}
-                          ariaLabel={t('CopyToClipboard')}
-                          className="copy restore button"
-                        />
-
-                        {userId &&
-                          joke.user?.includes(userId) &&
-                          joke.author === userId && (
-                            <Accordion
-                              id={`joke-edit-${joke.jokeId}`}
-                              className={`joke-edit`}
-                              wrapperClass="joke-edit-wrap"
-                              text={t('Edit')}
-                              setIsFormOpen={(isOpen) => {
-                                setEditId(isOpen ? joke.jokeId : undefined)
-                              }}
-                              onClick={() => {
-                                setJokeLanguage(joke.language)
-                                setJokeCategory(joke.category)
-                                setNewJoke(restOfJoke as IJoke)
-                              }}
-                              isOpen={editId === joke.jokeId}
-                            >
+                          <div>
+                            {userId && joke.user?.includes(userId) && (
                               <form
-                                onSubmit={handleUpdate(
-                                  joke?._id,
-                                  newJoke ?? joke
-                                )}
-                                className="joke-edit"
+                                onSubmit={
+                                  joke.type === EJokeType.single
+                                    ? handleDelete(joke?._id, joke?.joke)
+                                    : handleDelete(joke?._id, joke?.setup)
+                                }
+                                className="button-wrap"
                               >
-                                <div className="edit-wrap">
-                                  {joke.private === true &&
-                                  joke.type === EJokeType.twopart ? (
-                                    <>
-                                      <div className="input-wrap">
-                                        <label htmlFor="edit-setup">
-                                          <input
-                                            required
-                                            type="text"
-                                            name="edit-setup"
-                                            id="setup"
-                                            defaultValue={joke.setup}
-                                            onChange={(e) => {
-                                              setNewJoke(
-                                                (prev) =>
-                                                  ({
-                                                    ...prev,
-                                                    setup: e.target.value,
-                                                  }) as IJoke
-                                              )
-                                            }}
-                                          />
-                                          <span>{t('JokeSetup')}</span>
-                                        </label>
-                                      </div>
-                                      <div className="input-wrap">
-                                        <label htmlFor="edit-delivery">
-                                          <input
-                                            required
-                                            type="text"
-                                            name="delivery"
-                                            id="edit-delivery"
-                                            defaultValue={joke.delivery}
-                                            onChange={(e) => {
-                                              setNewJoke(
-                                                (prev) =>
-                                                  ({
-                                                    ...prev,
-                                                    delivery: e.target.value,
-                                                  }) as IJoke
-                                              )
-                                            }}
-                                          />
-                                          <span>{t('JokeDelivery')}</span>{' '}
-                                        </label>
-                                      </div>
-                                    </>
-                                  ) : joke.private === true &&
-                                    joke.type === EJokeType.single ? (
-                                    <div className="input-wrap">
-                                      <label htmlFor="edit-joke">
-                                        <input
-                                          required
-                                          type="text"
-                                          name="joke"
-                                          id="edit-joke"
-                                          defaultValue={joke.joke}
-                                          onChange={(e) => {
-                                            setNewJoke(
-                                              (prev) =>
-                                                ({
-                                                  ...prev,
-                                                  joke: e.target.value,
-                                                }) as IJoke
-                                            )
-                                          }}
-                                        />
-                                        <span>{t('Joke')}</span>
-                                      </label>
-                                    </div>
-                                  ) : (
-                                    <div>
-                                      {t('OnlyPrivateJokesCanBeEdited')}.{' '}
-                                      {t('Note')}{' '}
-                                      {t(
-                                        'RepublishingWillRequireVerificationFromAnAdministrator'
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                                {joke.private === true && (
-                                  <>
-                                    <div className="flex column center gap">
-                                      <Select
-                                        language={language}
-                                        id="edit-language"
-                                        className="edit-language"
-                                        z={3}
-                                        instructions={`${t('LanguageTitle')}:`}
-                                        hide
-                                        options={options(ELanguagesLong)}
-                                        value={
-                                          {
-                                            label:
-                                              getLanguageLabel(jokeLanguage),
-                                            value: jokeLanguage,
-                                          } as SelectOption
-                                        }
-                                        onChange={(o) => {
-                                          setJokeLanguage(
-                                            o?.value as ELanguages
-                                          )
-                                          setNewJoke(
-                                            (prev) =>
-                                              ({
-                                                ...prev,
-                                                language:
-                                                  o?.value as ELanguages,
-                                              }) as IJoke
-                                          )
-                                        }}
-                                      />
-                                      <Select
-                                        language={language}
-                                        id="edit-category"
-                                        className="edit-category"
-                                        z={2}
-                                        instructions={`${t('SelectCategory')}:`}
-                                        hide
-                                        options={[
-                                          { label: t('Any'), value: '' },
-                                          ...(Object.values(ECategories).map(
-                                            (category) => {
-                                              return {
-                                                label: getCategoryInLanguage(
-                                                  category,
-                                                  language
-                                                ),
-                                                value: category,
-                                              }
-                                            }
-                                          ) as SelectOption[]),
-                                        ]}
-                                        value={
-                                          {
-                                            label: getCategoryInLanguage(
-                                              jokeCategory,
-                                              language
-                                            ),
-                                            value: jokeCategory,
-                                          } as SelectOption
-                                        }
-                                        onChange={(
-                                          o: SelectOption | undefined
-                                        ) => {
-                                          const { ...restOfJoke } = joke
-                                          setJokeCategory(
-                                            o?.value as ECategories
-                                          )
-                                          setNewJoke(() => ({
-                                            ...restOfJoke,
-                                            category: o?.value as ECategories,
-                                          }))
-                                        }}
-                                      />
-                                    </div>
-
-                                    <fieldset>
-                                      <legend>{t('AddWarningTitle')}</legend>
-
-                                      <div className="checkbox-wrap">
-                                        <div>
-                                          <input
-                                            type="checkbox"
-                                            id="flag-nsfw"
-                                            name="nsfw"
-                                            value="nsfw"
-                                            onChange={() => {
-                                              setNewJoke(() => ({
-                                                ...restOfJoke,
-                                                nsfw: !joke.flags.nsfw,
-                                              }))
-                                            }}
-                                          />
-                                          <label htmlFor="flag-nsfw">
-                                            {FlagsLanguage[language].nsfw}
-                                          </label>
-                                        </div>
-                                        <div>
-                                          <input
-                                            type="checkbox"
-                                            id="flag-religious"
-                                            name="religious"
-                                            value="religious"
-                                            onChange={() => {
-                                              setNewJoke(() => ({
-                                                ...restOfJoke,
-                                                religious:
-                                                  !joke.flags.religious,
-                                              }))
-                                            }}
-                                          />
-                                          <label htmlFor="flag-religious">
-                                            {FlagsLanguage[language].religious}
-                                          </label>
-                                        </div>
-                                        <div>
-                                          <input
-                                            type="checkbox"
-                                            id="flag-political"
-                                            name="political"
-                                            value="political"
-                                            onChange={() => {
-                                              setNewJoke(() => ({
-                                                ...restOfJoke,
-                                                political:
-                                                  !joke.flags.political,
-                                              }))
-                                            }}
-                                          />
-                                          <label htmlFor="flag-political">
-                                            {FlagsLanguage[language].political}
-                                          </label>
-                                        </div>
-                                        <div>
-                                          <input
-                                            type="checkbox"
-                                            id="flag-racist"
-                                            name="racist"
-                                            value="racist"
-                                            onChange={() => {
-                                              setNewJoke(() => ({
-                                                ...restOfJoke,
-                                                racist: !joke.flags.racist,
-                                              }))
-                                            }}
-                                          />
-                                          <label htmlFor="flag-racist">
-                                            {FlagsLanguage[language].racist}
-                                          </label>
-                                        </div>
-                                        <div>
-                                          <input
-                                            type="checkbox"
-                                            id="flag-sexist"
-                                            name="sexist"
-                                            value="sexist"
-                                            onChange={() => {
-                                              setNewJoke(() => ({
-                                                ...restOfJoke,
-                                                sexist: !joke.flags.sexist,
-                                              }))
-                                            }}
-                                          />
-                                          <label htmlFor="flag-sexist">
-                                            {FlagsLanguage[language].sexist}
-                                          </label>
-                                        </div>
-                                        <div>
-                                          <input
-                                            type="checkbox"
-                                            id="flag-explicit"
-                                            name="explicit"
-                                            value="explicit"
-                                            onChange={() => {
-                                              setNewJoke(() => ({
-                                                ...restOfJoke,
-                                                explicit: !joke.flags.explicit,
-                                              }))
-                                            }}
-                                          />
-                                          <label htmlFor="flag-explicit">
-                                            {FlagsLanguage[language].explicit}
-                                          </label>
-                                        </div>
-                                      </div>
-                                    </fieldset>
-                                  </>
-                                )}
-                                <fieldset className="flex center gap margin0auto">
-                                  <div>
-                                    <input
-                                      type="checkbox"
-                                      name="anonymous"
-                                      id="edit-anonymous"
-                                      defaultChecked={joke.anonymous}
-                                      onChange={() => {
-                                        const { ...restOfJoke } = joke
-                                        setNewJoke(() => ({
-                                          ...restOfJoke,
-                                          anonymous: !joke.anonymous,
-                                        }))
-                                      }}
-                                    />
-                                    <label htmlFor="edit-anonymous">
-                                      Anonymous:
-                                    </label>
-                                  </div>
-                                  <div>
-                                    <input
-                                      type="checkbox"
-                                      name="private"
-                                      id="edit-private"
-                                      defaultChecked={joke.private}
-                                      onChange={() => {
-                                        const { ...restOfJoke } = joke
-                                        setNewJoke(() => ({
-                                          ...restOfJoke,
-                                          private: !joke.private,
-                                        }))
-                                      }}
-                                    />
-                                    <label htmlFor="edit-private">
-                                      Private:
-                                    </label>
-                                  </div>
-                                </fieldset>
                                 <button
                                   type="submit"
                                   disabled={sending}
-                                  className="save"
+                                  className="delete danger"
                                 >
-                                  {t('SaveJoke')}
+                                  {joke.user?.length > 1
+                                    ? t('Remove')
+                                    : t('Delete')}
                                 </button>
                               </form>
-                            </Accordion>
-                          )}
-                      </div>
-                    </div>
+                            )}
+                            {userId &&
+                              joke.author !== userId &&
+                              !joke.user?.includes(userId) && (
+                                <button
+                                  onClick={() =>
+                                    void handleBlacklistUpdate(
+                                      joke.jokeId,
+                                      joke.language,
+                                      joke.category ===
+                                        ECategories.ChuckNorris &&
+                                        joke.type === EJokeType.single
+                                        ? joke.joke
+                                        : undefined
+                                    )
+                                  }
+                                  className="delete danger"
+                                >
+                                  {t('Block')}
+                                </button>
+                              )}
+
+                            {!joke.user?.includes(userId) && (
+                              <button
+                                onClick={() => handleJokeSave(joke._id)}
+                                className="save"
+                              >
+                                {t('SaveJoke')} <Icon lib="md" name="MdSave" />
+                              </button>
+                            )}
+
+                            <CopyToClipboard
+                              value={
+                                joke.type === EJokeType.single
+                                  ? joke.joke
+                                  : joke.setup + ' \n' + joke.delivery
+                              }
+                              restore
+                              label={t('Copy')}
+                              ariaLabel={t('CopyToClipboard')}
+                              className="copy restore button"
+                            />
+
+                            {userId &&
+                              joke.user?.includes(userId) &&
+                              joke.author === userId && (
+                                <Accordion
+                                  id={`joke-edit-${joke.jokeId}`}
+                                  className={`joke-edit`}
+                                  wrapperClass="joke-edit-wrap"
+                                  text={t('Edit')}
+                                  setIsFormOpen={(isOpen) => {
+                                    setEditId(isOpen ? joke.jokeId : undefined)
+                                  }}
+                                  onClick={() => {
+                                    setJokeLanguage(joke.language)
+                                    setJokeCategory(joke.category)
+                                    setNewJoke(restOfJoke as IJoke)
+                                  }}
+                                  isOpen={editId === joke.jokeId}
+                                >
+                                  <form
+                                    onSubmit={handleUpdate(
+                                      joke?._id,
+                                      newJoke ?? joke
+                                    )}
+                                    className="joke-edit"
+                                  >
+                                    <div className="edit-wrap">
+                                      {joke.private === true &&
+                                      joke.type === EJokeType.twopart ? (
+                                        <>
+                                          <div className="input-wrap">
+                                            <label htmlFor="edit-setup">
+                                              <input
+                                                required
+                                                type="text"
+                                                name="edit-setup"
+                                                id="setup"
+                                                defaultValue={joke.setup}
+                                                onChange={(e) => {
+                                                  setNewJoke(
+                                                    (prev) =>
+                                                      ({
+                                                        ...prev,
+                                                        setup: e.target.value,
+                                                      }) as IJoke
+                                                  )
+                                                }}
+                                              />
+                                              <span>{t('JokeSetup')}</span>
+                                            </label>
+                                          </div>
+                                          <div className="input-wrap">
+                                            <label htmlFor="edit-delivery">
+                                              <input
+                                                required
+                                                type="text"
+                                                name="delivery"
+                                                id="edit-delivery"
+                                                defaultValue={joke.delivery}
+                                                onChange={(e) => {
+                                                  setNewJoke(
+                                                    (prev) =>
+                                                      ({
+                                                        ...prev,
+                                                        delivery:
+                                                          e.target.value,
+                                                      }) as IJoke
+                                                  )
+                                                }}
+                                              />
+                                              <span>
+                                                {t('JokeDelivery')}
+                                              </span>{' '}
+                                            </label>
+                                          </div>
+                                        </>
+                                      ) : joke.private === true &&
+                                        joke.type === EJokeType.single ? (
+                                        <div className="input-wrap">
+                                          <label htmlFor="edit-joke">
+                                            <input
+                                              required
+                                              type="text"
+                                              name="joke"
+                                              id="edit-joke"
+                                              defaultValue={joke.joke}
+                                              onChange={(e) => {
+                                                setNewJoke(
+                                                  (prev) =>
+                                                    ({
+                                                      ...prev,
+                                                      joke: e.target.value,
+                                                    }) as IJoke
+                                                )
+                                              }}
+                                            />
+                                            <span>{t('Joke')}</span>
+                                          </label>
+                                        </div>
+                                      ) : (
+                                        <div>
+                                          {t('OnlyPrivateJokesCanBeEdited')}.{' '}
+                                          {t('Note')}{' '}
+                                          {t(
+                                            'RepublishingWillRequireVerificationFromAnAdministrator'
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                    {joke.private === true && (
+                                      <>
+                                        <div className="flex column center gap">
+                                          <Select
+                                            language={language}
+                                            id="edit-language"
+                                            className="edit-language"
+                                            z={3}
+                                            instructions={`${t('LanguageTitle')}:`}
+                                            hide
+                                            options={options(ELanguagesLong)}
+                                            value={
+                                              {
+                                                label:
+                                                  getLanguageLabel(
+                                                    jokeLanguage
+                                                  ),
+                                                value: jokeLanguage,
+                                              } as SelectOption
+                                            }
+                                            onChange={(o) => {
+                                              setJokeLanguage(
+                                                o?.value as ELanguages
+                                              )
+                                              setNewJoke(
+                                                (prev) =>
+                                                  ({
+                                                    ...prev,
+                                                    language:
+                                                      o?.value as ELanguages,
+                                                  }) as IJoke
+                                              )
+                                            }}
+                                          />
+                                          <Select
+                                            language={language}
+                                            id="edit-category"
+                                            className="edit-category"
+                                            z={2}
+                                            instructions={`${t('SelectCategory')}:`}
+                                            hide
+                                            options={[
+                                              { label: t('Any'), value: '' },
+                                              ...(Object.values(
+                                                ECategories
+                                              ).map((category) => {
+                                                return {
+                                                  label: getCategoryInLanguage(
+                                                    category,
+                                                    language
+                                                  ),
+                                                  value: category,
+                                                }
+                                              }) as SelectOption[]),
+                                            ]}
+                                            value={
+                                              {
+                                                label: getCategoryInLanguage(
+                                                  jokeCategory,
+                                                  language
+                                                ),
+                                                value: jokeCategory,
+                                              } as SelectOption
+                                            }
+                                            onChange={(
+                                              o: SelectOption | undefined
+                                            ) => {
+                                              const { ...restOfJoke } = joke
+                                              setJokeCategory(
+                                                o?.value as ECategories
+                                              )
+                                              setNewJoke(() => ({
+                                                ...restOfJoke,
+                                                category:
+                                                  o?.value as ECategories,
+                                              }))
+                                            }}
+                                          />
+                                        </div>
+
+                                        <fieldset>
+                                          <legend>
+                                            {t('AddWarningTitle')}
+                                          </legend>
+
+                                          <div className="checkbox-wrap">
+                                            <div>
+                                              <input
+                                                type="checkbox"
+                                                id="flag-nsfw"
+                                                name="nsfw"
+                                                value="nsfw"
+                                                onChange={() => {
+                                                  setNewJoke(() => ({
+                                                    ...restOfJoke,
+                                                    nsfw: !joke.flags.nsfw,
+                                                  }))
+                                                }}
+                                              />
+                                              <label htmlFor="flag-nsfw">
+                                                {FlagsLanguage[language].nsfw}
+                                              </label>
+                                            </div>
+                                            <div>
+                                              <input
+                                                type="checkbox"
+                                                id="flag-religious"
+                                                name="religious"
+                                                value="religious"
+                                                onChange={() => {
+                                                  setNewJoke(() => ({
+                                                    ...restOfJoke,
+                                                    religious:
+                                                      !joke.flags.religious,
+                                                  }))
+                                                }}
+                                              />
+                                              <label htmlFor="flag-religious">
+                                                {
+                                                  FlagsLanguage[language]
+                                                    .religious
+                                                }
+                                              </label>
+                                            </div>
+                                            <div>
+                                              <input
+                                                type="checkbox"
+                                                id="flag-political"
+                                                name="political"
+                                                value="political"
+                                                onChange={() => {
+                                                  setNewJoke(() => ({
+                                                    ...restOfJoke,
+                                                    political:
+                                                      !joke.flags.political,
+                                                  }))
+                                                }}
+                                              />
+                                              <label htmlFor="flag-political">
+                                                {
+                                                  FlagsLanguage[language]
+                                                    .political
+                                                }
+                                              </label>
+                                            </div>
+                                            <div>
+                                              <input
+                                                type="checkbox"
+                                                id="flag-racist"
+                                                name="racist"
+                                                value="racist"
+                                                onChange={() => {
+                                                  setNewJoke(() => ({
+                                                    ...restOfJoke,
+                                                    racist: !joke.flags.racist,
+                                                  }))
+                                                }}
+                                              />
+                                              <label htmlFor="flag-racist">
+                                                {FlagsLanguage[language].racist}
+                                              </label>
+                                            </div>
+                                            <div>
+                                              <input
+                                                type="checkbox"
+                                                id="flag-sexist"
+                                                name="sexist"
+                                                value="sexist"
+                                                onChange={() => {
+                                                  setNewJoke(() => ({
+                                                    ...restOfJoke,
+                                                    sexist: !joke.flags.sexist,
+                                                  }))
+                                                }}
+                                              />
+                                              <label htmlFor="flag-sexist">
+                                                {FlagsLanguage[language].sexist}
+                                              </label>
+                                            </div>
+                                            <div>
+                                              <input
+                                                type="checkbox"
+                                                id="flag-explicit"
+                                                name="explicit"
+                                                value="explicit"
+                                                onChange={() => {
+                                                  setNewJoke(() => ({
+                                                    ...restOfJoke,
+                                                    explicit:
+                                                      !joke.flags.explicit,
+                                                  }))
+                                                }}
+                                              />
+                                              <label htmlFor="flag-explicit">
+                                                {
+                                                  FlagsLanguage[language]
+                                                    .explicit
+                                                }
+                                              </label>
+                                            </div>
+                                          </div>
+                                        </fieldset>
+                                      </>
+                                    )}
+                                    <fieldset className="flex center gap margin0auto">
+                                      <div>
+                                        <input
+                                          type="checkbox"
+                                          name="anonymous"
+                                          id="edit-anonymous"
+                                          defaultChecked={joke.anonymous}
+                                          onChange={() => {
+                                            const { ...restOfJoke } = joke
+                                            setNewJoke(() => ({
+                                              ...restOfJoke,
+                                              anonymous: !joke.anonymous,
+                                            }))
+                                          }}
+                                        />
+                                        <label htmlFor="edit-anonymous">
+                                          Anonymous:
+                                        </label>
+                                      </div>
+                                      <div>
+                                        <input
+                                          type="checkbox"
+                                          name="private"
+                                          id="edit-private"
+                                          defaultChecked={joke.private}
+                                          onChange={() => {
+                                            const { ...restOfJoke } = joke
+                                            setNewJoke(() => ({
+                                              ...restOfJoke,
+                                              private: !joke.private,
+                                            }))
+                                          }}
+                                        />
+                                        <label htmlFor="edit-private">
+                                          Private:
+                                        </label>
+                                      </div>
+                                    </fieldset>
+                                    <button
+                                      type="submit"
+                                      disabled={sending}
+                                      className="save"
+                                    >
+                                      {t('SaveJoke')}
+                                    </button>
+                                  </form>
+                                </Accordion>
+                              )}
+                          </div>
+                        </div>
+                      </li>
+                    )
+                  })
+                ) : hasLoadedJokes ? (
+                  <li className="margin0auto max-content">{t('NoJokesYet')}</li>
+                ) : (
+                  <li className="margin0auto max-content">
+                    {t('LoadingJokes')}
+                    <br />
+                    <br />({t('ThisMayTakeUpToAMinute')})
                   </li>
-                )
-              })
-            ) : hasLoadedJokes ? (
-              <li className="margin0auto max-content">{t('NoJokesYet')}</li>
-            ) : (
-              <li className="margin0auto max-content">
-                {t('LoadingJokes')}
-                <br />
-                <br />({t('ThisMayTakeUpToAMinute')})
-              </li>
-            )}
-            </ul>
+                )}
+              </ul>
             </>
           )}
-          {!showUnverifiedJokes && !isRandom && !showBlacklistedJokes && pagination(2)}
+          {!showUnverifiedJokes &&
+            !isRandom &&
+            !showBlacklistedJokes &&
+            pagination(2)}
         </div>
         <div className="filler below"></div>
       </div>
@@ -1841,12 +1780,13 @@ const UserJokes = ({
         <div className="local-saved-wrap below">
           <button
             className={`btn${
-              localJokes && !showBlacklistedJokes && !showUnverifiedJokes
+              localJokes && !showBlacklistedView && !showUnverifiedView
                 ? ' active'
                 : ''
             }`}
             onClick={() => {
-              setLocalJokes(true)
+              setCurrentPage(1)
+              setShowLocalJokes(true)
               setShowBlacklistedJokes(false)
               setShowUnverifiedJokes(false)
             }}
@@ -1855,12 +1795,13 @@ const UserJokes = ({
           </button>
           <button
             className={`btn${
-              !localJokes && !showBlacklistedJokes && !showUnverifiedJokes
+              !localJokes && !showBlacklistedView && !showUnverifiedView
                 ? ' active'
                 : ''
             }`}
             onClick={() => {
-              setLocalJokes(false)
+              setCurrentPage(1)
+              setShowLocalJokes(false)
               setShowBlacklistedJokes(false)
               setShowUnverifiedJokes(false)
             }}

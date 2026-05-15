@@ -3,12 +3,16 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 type Precision = '1s' | '1ms'
 
 const useTimer = (active: boolean, precision: Precision) => {
-  const [timer, setTimer] = useState<number>(0)
+  const [timerState, setTimerState] = useState<{
+    precision: Precision
+    timer: number
+  }>({ precision, timer: 0 })
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const timer = timerState.precision === precision ? timerState.timer : 0
 
   const resetTimer = useCallback(() => {
-    setTimer(0)
-  }, [])
+    setTimerState({ precision, timer: 0 })
+  }, [precision])
 
   // Handle timer logic - start interval when active
   useEffect(() => {
@@ -27,11 +31,17 @@ const useTimer = (active: boolean, precision: Precision) => {
     const increment = precision === '1s' ? 1 : 0.1
 
     intervalRef.current = setInterval(() => {
-      setTimer(prev => {
-        const updatedTimer = prev + increment
-        return precision === '1s'
-          ? updatedTimer
-          : parseFloat(updatedTimer.toFixed(1))
+      setTimerState((prev) => {
+        const previousTimer = prev.precision === precision ? prev.timer : 0
+        const updatedTimer = previousTimer + increment
+
+        return {
+          precision,
+          timer:
+            precision === '1s'
+              ? updatedTimer
+              : parseFloat(updatedTimer.toFixed(1)),
+        }
       })
     }, intervalDuration)
 
@@ -42,12 +52,6 @@ const useTimer = (active: boolean, precision: Precision) => {
       }
     }
   }, [active, precision])
-
-  // Reset timer when precision changes
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTimer(0)
-  }, [precision])
 
   return { timer, resetTimer }
 }

@@ -58,6 +58,24 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 type ReturnType<T> = [T, (value: T | ((val: T) => T)) => void, () => void]
 
+const readStorageValue = <T,>(
+  key: string,
+  defaultValue: T,
+  storageObject: Storage | null
+) => {
+  if (!storageObject) {
+    return defaultValue
+  }
+
+  try {
+    const jsonValue = storageObject.getItem(key)
+    return jsonValue != null ? (JSON.parse(jsonValue) as T) : defaultValue
+  } catch (error) {
+    console.error(`Error reading storage key "${key}":`, error)
+    return defaultValue
+  }
+}
+
 export default function useLocalStorage<T>(key: string, defaultValue: T) {
   // Check if we're in the browser before accessing window
   const storage = typeof window !== 'undefined' ? window.localStorage : null
@@ -75,34 +93,17 @@ function useStorage<T>(
   defaultValue: T,
   storageObject: Storage | null
 ): ReturnType<T> {
-  const [value, setValue] = useState<T>(defaultValue)
-  const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false)
-
-  useEffect(() => {
-    if (!storageObject) {
-      setHasLoadedFromStorage(true)
-      return
-    }
-
-    try {
-      const jsonValue = storageObject.getItem(key)
-      if (jsonValue != null) {
-        setValue(JSON.parse(jsonValue) as T)
-      }
-    } catch (error) {
-      console.error(`Error reading storage key "${key}":`, error)
-    } finally {
-      setHasLoadedFromStorage(true)
-    }
-  }, [key, storageObject])
+  const [value, setValue] = useState<T>(() =>
+    readStorageValue(key, defaultValue, storageObject)
+  )
 
   useEffect(() => {
     // Only run effects in the browser
-    if (!storageObject || !hasLoadedFromStorage) return
+    if (!storageObject) return
 
     if (value === undefined) return storageObject.removeItem(key)
     storageObject.setItem(key, JSON.stringify(value))
-  }, [hasLoadedFromStorage, key, value, storageObject])
+  }, [key, value, storageObject])
 
   const remove = useCallback(() => {
     setValue(defaultValue)
