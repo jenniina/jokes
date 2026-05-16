@@ -12,6 +12,9 @@
   --height: calc(1.1em * var(--responsive_scale, 1));
   --width: calc(var(--height) * 1.7);
 }
+.toggle-container.disabled {
+  opacity: 0.55;
+}
 .toggle {
   position: relative;
   display: inline-block;
@@ -24,6 +27,9 @@
   box-shadow: 0px 0.1em 0.2em rgba(0, 0, 0, 0.3);
   border-radius: var(--rad);
   cursor: pointer;
+}
+.toggle-container.disabled .toggle {
+  cursor: not-allowed;
 }
 .toggle input[type='checkbox' i] {
   display: inline-block;
@@ -247,4 +253,64 @@
 .light.toggle.equal input:hover ~ .labels::before {
   color: var(--color-primary-19);
   background-position: left 50%;
+}
+
+.checkbox-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8em;
+  padding: 0.42em 0.8em;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-box {
+  position: relative;
+  width: 1.15em;
+  height: 1.15em;
+  border-radius: 0.32em;
+  border: 0.12em solid currentColor;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  transition-property: background-color;
+  transition-duration: 0.2s;
+  transition-timing-function: ease-in-out;
+}
+.checkbox-box::before {
+  content: '';
+  position: absolute;
+  top: -0.33em;
+  left: -0.33em;
+  width: calc(100% + 0.66em);
+  height: calc(100% + 0.66em);
+  border: 1px solid var(--color-primary-11);
+  background: radial-gradient(transparent 40%, var(--color-gray-4) 100%);
+  box-shadow: 0 0.12em 0.3em rgba(0, 0, 0, 0.18);
+  border-radius: 0.44em;
+  z-index: -1;
+}
+.checkbox-mark {
+  width: 0.62em;
+  height: 0.62em;
+  border-radius: 0.15em;
+  background: currentColor;
+  transform: scale(0);
+  transition-property: transform, background-color;
+  transition-duration: 0.2s;
+  transition-timing-function: ease-in-out;
+}
+
+.checkbox-container input:checked + .checkbox-box .checkbox-mark {
+  transform: scale(1);
+}
+
+.checkbox-container:hover .checkbox-box,
+.checkbox-container input:focus-visible + .checkbox-box {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.checkbox-label {
+  font-size: 0.82em;
 }

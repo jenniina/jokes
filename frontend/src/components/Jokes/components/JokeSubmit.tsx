@@ -10,7 +10,7 @@ import {
   EJokeSetup,
 } from '../types'
 import { ELanguages, ELanguagesLong, IUser } from '../../../types'
-import React, { ChangeEvent, useCallback, useEffect, useState } from 'react'
+import React, { ChangeEvent, useState } from 'react'
 import ButtonToggle from '../../ButtonToggle/ButtonToggle'
 import Accordion from '../../Accordion/Accordion'
 import { Select, SelectOption } from '../../Select/Select'
@@ -78,11 +78,6 @@ const JokeSubmit = ({
   const [languageSubmit, setLanguageSubmit] = useState<ELanguages>(
     ELanguages[language]
   )
-  const [jokeType, setJokeType] = useState<EJokeType>(EJokeType.single)
-  const [setupTitle, setSetupTitle] = useState<EJokeSetup>(EJokeSetup.en)
-  const [deliveryTitle, setDeliveryTitle] = useState<EJokeDelivery>(
-    EJokeDelivery.en
-  )
   const [joke, setJoke] = useState<string>('')
   const [setup, setSetup] = useState<string>('')
   const [delivery, setDelivery] = useState<string>('')
@@ -98,28 +93,18 @@ const JokeSubmit = ({
   const [selectedNorrisCategory, setSelectedNorrisCategory] = useState<
     SelectOption | undefined
   >(norrisCategories[0])
-  const [hasNorris, setHasNorris] = useState(false)
   const [saving, setSaving] = useState(false)
-
-  const norrisExists = useCallback(() => {
-    if (selectedCategory === ECategories.ChuckNorris) {
-      setHasNorris(true)
-    } else {
-      setHasNorris(false)
-    }
-  }, [selectedCategory])
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    norrisExists()
-  }, [selectedCategory, norrisExists])
+  const hasNorris = selectedCategory === ECategories.ChuckNorris
+  const jokeType = isCheckedJokeType ? EJokeType.twopart : EJokeType.single
+  const setupTitle = EJokeSetup[language]
+  const deliveryTitle = EJokeDelivery[language]
 
   const dispatch = useAppDispatch()
 
   const handleNewJokeSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setSaving(true)
-    const formData = new FormData(e.currentTarget as HTMLFormElement)
+    const formData = new FormData(e.currentTarget)
     const isAnyFlagChecked =
       !!formData.get('nsfw') ||
       !!formData.get('religious') ||
@@ -166,14 +151,14 @@ const JokeSubmit = ({
         ...jokeObject,
         joke,
         type: EJokeType.single,
-      } as IJoke
+      }
     } else {
       jokeObject = {
         ...jokeObject,
         setup,
         delivery,
         type: EJokeType.twopart,
-      } as IJoke
+      }
     }
 
     void dispatch(createJoke(jokeObject as IJoke))
@@ -214,19 +199,6 @@ const JokeSubmit = ({
       })
   }
 
-  const isCheckedJoketypeCallback = useCallback(() => {
-    if (isCheckedJokeType) {
-      setJokeType(EJokeType.twopart)
-    } else {
-      setJokeType(EJokeType.single)
-    }
-  }, [isCheckedJokeType])
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    isCheckedJoketypeCallback()
-  }, [isCheckedJokeType, isCheckedJoketypeCallback])
-
   const handleToggleChangeJokeType = () => {
     setIsCheckedJokeType(!isCheckedJokeType)
   }
@@ -238,16 +210,6 @@ const JokeSubmit = ({
   const handleToggleChangeAnonymous = () => {
     setIsCheckedAnonymous(!isCheckedAnonymous)
   }
-
-  const setupTitles = useCallback(() => {
-    setSetupTitle(EJokeSetup[language])
-    setDeliveryTitle(EJokeDelivery[language])
-  }, [language])
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setupTitles()
-  }, [language, setupTitles])
 
   return (
     <div className="submit-wrap">
@@ -399,10 +361,10 @@ const JokeSubmit = ({
               options={options(ELanguagesLong)}
               value={
                 language
-                  ? ({
+                  ? {
                       value: ELanguages[languageSubmit],
                       label: ELanguagesLong[languageSubmit],
-                    } as SelectOption)
+                    }
                   : undefined
               }
               onChange={(o) => {

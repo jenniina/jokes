@@ -1,6 +1,6 @@
 import { useSelector } from 'react-redux'
 import { ReducerProps } from '../../types'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useLanguageContext } from '../../contexts/LanguageContext'
 
 const Notification = () => {
@@ -9,12 +9,14 @@ const Notification = () => {
   const notification = useSelector(
     (state: ReducerProps) => state.notification ?? null
   )
-  const [closed, setClosed] = useState(false)
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setClosed(false)
-  }, [notification])
+  const notificationKey = notification
+    ? `${notification.message}-${notification.isError}`
+    : null
+  const [dismissedNotificationKey, setDismissedNotificationKey] = useState<
+    string | null
+  >(null)
+  const closed =
+    notificationKey !== null && dismissedNotificationKey === notificationKey
 
   if (notification === null || closed) {
     return null
@@ -31,7 +33,7 @@ const Notification = () => {
           type="button"
           className="close"
           onClick={() => {
-            setClosed(true)
+            setDismissedNotificationKey(notificationKey)
           }}
         >
           <span>{t('Close')}</span>

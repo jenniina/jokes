@@ -51,7 +51,6 @@ import { initializeUser } from '../../reducers/authReducer'
 import UserJokes from './components/UserJokes'
 import norrisService from './services/chucknorris'
 import dadjokeService from './services/dadjokes'
-import geekjokeService from './services/geekjokes'
 import officialJokeService from './services/officialjokes'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -151,9 +150,7 @@ function Jokes() {
     'jokeLanguage',
     ELanguages.en
   )
-  const [jokeCategory, setJokeCategory] = useState<ECategories | null>(
-    ECategories.Misc
-  )
+  const [jokeCategory, setJokeCategory] = useState<ECategories | null>(null)
   const [categoryValues, setCategoryValues] = useState<SelectOption[]>([])
   const [norrisCategories, setNorrisCategories] = useState<SelectOption[]>([
     { value: 'any', label: 'Any' },
@@ -163,6 +160,8 @@ function Jokes() {
   >(norrisCategories[0])
   const [subCategoryResults, setSubCategoryResults] = useState<string[]>([])
   const [isCheckedJokeType, setIsCheckedJokeType] = useState<boolean>(false)
+  const [isCheckedEitherJokeType, setIsCheckedEitherJokeType] =
+    useState<boolean>(false)
   const [isCheckedSafemode, setIsCheckedSafemode] = useState<boolean>(true)
   const [queryValue, setQueryValue] = useState<string>('')
   const [query, setQuery] = useState<string>('')
@@ -226,9 +225,13 @@ function Jokes() {
   const handleToggleChangeEJokeType = () => {
     setIsCheckedJokeType(!isCheckedJokeType)
   }
+  const handleToggleChangeEitherJokeType = () => {
+    setIsCheckedEitherJokeType((prev) => !prev)
+  }
 
   const safemode = isCheckedSafemode ? ESafemode.Safe : ESafemode.Unsafe
   const jokeType = isCheckedJokeType ? EJokeType.twopart : EJokeType.single
+  const acceptsEitherJokeType = isCheckedEitherJokeType
 
   // Handle form submit
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
@@ -372,10 +375,12 @@ function Jokes() {
   // }
 
   const optionsCategory = (enumObj: TCategoryByLanguages) => {
-    return Object.entries(enumObj).map(([key, value]: [string, string]) => ({
-      value: key,
-      label: value,
-    })) as SelectOption[]
+    return Object.entries(enumObj)
+      .filter(([key]) => key !== 'Geek')
+      .map(([key, value]: [string, string]) => ({
+        value: key,
+        label: value,
+      })) as SelectOption[]
   }
 
   const optionsSortBy = (enumObj: typeof ESortBy) => {
@@ -406,7 +411,23 @@ function Jokes() {
     return undefined
   }
 
-  const [foundJoke, setFoundJoke] = useState<IJoke | undefined>(undefined)
+  const handleCategoryValuesChange = useCallback(
+    (selectedCategories: SelectOption[]) => {
+      setCategoryValues(selectedCategories)
+      setJokeCategory(
+        selectedCategories.length > 0
+          ? (selectedCategories
+              .map((selectedCategory) => selectedCategory.value)
+              .join(',') as ECategories)
+          : null
+      )
+    },
+    []
+  )
+
+  const handleQueryValueChange = useCallback((nextQueryValue: string) => {
+    setQueryValue(nextQueryValue === '&' ? '' : nextQueryValue)
+  }, [])
 
   interface IJokeApiResponse {
     id?: number | string
@@ -428,19 +449,17 @@ function Jokes() {
     language?: ELanguages
   }
 
-  useEffect(() => {
+  const foundJoke = useMemo(() => {
     if (!recentJoke?.jokeId) {
-      setFoundJoke(undefined)
-      return
+      return undefined
     }
 
-    const findJoke = jokes?.find(
-      (j: IJoke) =>
-        j.jokeId.toString() === recentJoke.jokeId.toString() &&
-        j.language === recentJoke?.language &&
-        j.category === recentJoke?.category
+    return jokes?.find(
+      (savedJoke: IJoke) =>
+        savedJoke.jokeId.toString() === recentJoke.jokeId.toString() &&
+        savedJoke.language === recentJoke.language &&
+        savedJoke.category === recentJoke.category
     )
-    setFoundJoke(findJoke)
   }, [recentJoke, jokes])
 
   const handleJokeSave = async (
@@ -729,35 +748,6 @@ function Jokes() {
     )
   }
 
-  const getGeekJokeId = (jokeText: string) => {
-    return `geek-${jokeText
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 80)}`
-  }
-
-  const fetchAndSetGeekJoke = async (
-    repeat: boolean,
-    userId?: IUser['_id']
-  ) => {
-    const joke = await geekjokeService.getRandomGeekJoke()
-
-    if (!joke) {
-      return false
-    }
-
-    return setSingleLineExternalJokeData(
-      getGeekJokeId(joke),
-      joke,
-      ECategories.Geek,
-      [],
-      repeat,
-      userId
-    )
-  }
-
   const fetchAndSetOfficialJoke = async (
     type: EOfficialJokeType,
     category: ECategories,
@@ -795,38 +785,34 @@ function Jokes() {
     translatedLanguage: string
     name: string
   }
-  const [userJokes, setUserJokes] = useState<IJokeExtra[]>([])
-
-  useEffect(() => {
-    if (Array.isArray(jokes) && jokes?.length > 0) {
-      const processJokes = () => {
-        return jokes.map((joke) => {
-          const authorNameFromPublic =
-            typeof joke.author === 'string'
-              ? publicUserNames?.[joke.author]
-              : undefined
-
-          const jokeLanguage =
-            ELanguagesLong[joke.language as keyof typeof ELanguages]
-
-          return {
-            ...joke,
-            translatedLanguage: jokeLanguage ?? '',
-            name: joke.anonymous
-              ? t('Anonymous')
-              : ((authorNameFromPublic ?? '') as string),
-          }
-        })
-      }
-
-      const processedJokes = processJokes()
-      const filteredJokes = processedJokes
-        .filter((joke) => joke.safe === isCheckedSafemode)
-        .sort((a, b) => b.user?.length - a.user?.length)
-
-      setUserJokes(filteredJokes)
+  const userJokes = useMemo<IJokeExtra[]>(() => {
+    if (!Array.isArray(jokes) || jokes.length === 0) {
+      return []
     }
-  }, [jokes, language, isCheckedSafemode, t, publicUserNames])
+
+    return jokes
+      .map((savedJoke) => {
+        const authorNameFromPublic =
+          typeof savedJoke.author === 'string'
+            ? publicUserNames?.[savedJoke.author]
+            : undefined
+
+        const translatedLanguage =
+          ELanguagesLong[savedJoke.language as keyof typeof ELanguages]
+
+        return {
+          ...savedJoke,
+          translatedLanguage: translatedLanguage ?? '',
+          name: savedJoke.anonymous
+            ? t('Anonymous')
+            : (authorNameFromPublic ?? ''),
+        }
+      })
+      .filter((savedJoke) => savedJoke.safe === isCheckedSafemode)
+      .sort(
+        (leftJoke, rightJoke) => rightJoke.user?.length - leftJoke.user?.length
+      )
+  }, [jokes, isCheckedSafemode, t, publicUserNames])
 
   // Fetch joke from API or database
   const fetchApi = async (retryCount = 0) => {
@@ -931,19 +917,20 @@ function Jokes() {
         ((joke.private === false && joke.verified === true) ||
           joke.private === undefined) &&
         joke.safe === isCheckedSafemode &&
-        joke.type === jokeType
+        (acceptsEitherJokeType || joke.type === jokeType)
     )
     const isEmpty = categoryValues?.length < 1
     const isChuckNorris = selectedCategory === ECategories.ChuckNorris
     const isDadJoke = selectedCategory === ECategories.DadJoke
-    const isGeek = selectedCategory === ECategories.Geek
     const isProgramming = selectedCategory === ECategories.Programming
     const isMisc = selectedCategory === ECategories.Misc
     const isKnockKnock = selectedCategory === ECategories.KnockKnock
     const normalizedQueryValue = queryValue.replace(/&$/, '').trim()
     const isQueryNotEmpty = normalizedQueryValue !== ''
     const canUseEnglishOnlyExternalSources =
-      jokeLanguage === ELanguages.en && !isCheckedJokeType && !isQueryNotEmpty
+      jokeLanguage === ELanguages.en &&
+      (acceptsEitherJokeType || !isCheckedJokeType) &&
+      !isQueryNotEmpty
 
     let newFilteredJokes = filteredJokes
 
@@ -994,7 +981,7 @@ function Jokes() {
 
           if (
             joke.safe === isCheckedSafemode &&
-            joke.type === jokeType &&
+            (acceptsEitherJokeType || joke.type === jokeType) &&
             ((joke.private === false && joke.verified === true) ||
               joke.private === undefined)
           ) {
@@ -1041,18 +1028,10 @@ function Jokes() {
       return
     }
 
-    if (isChuckNorris || isDadJoke || isKnockKnock || isGeek) {
+    if (isChuckNorris || isDadJoke || isKnockKnock) {
       // ChuckNorris and DadJoke only appear in English in the API, so for other languages, you search for a joke from the database
       if (jokeLanguage !== ELanguages.en) {
         void handleJokes(newFilteredJokes)
-        return
-      } else if (isGeek) {
-        const joke = await fetchAndSetGeekJoke(true, user?._id)
-
-        if (!joke) {
-          noJoke()
-        }
-
         return
       } else if (isKnockKnock) {
         const joke = await fetchAndSetOfficialJoke(
@@ -1175,7 +1154,7 @@ function Jokes() {
         void fetchFromJokeAPI(0, selectedCategory)
       }
       return
-    } else if (isEmpty && !isCheckedJokeType) {
+    } else if (isEmpty && (acceptsEitherJokeType || !isCheckedJokeType)) {
       const rand = Math.floor(getRandomMinMax(1, 14.999))
       const query = isQueryNotEmpty ? normalizedQueryValue : null
       if (rand === 1) {
@@ -1211,10 +1190,6 @@ function Jokes() {
           )
         }
       } else if (rand === 3 && canUseEnglishOnlyExternalSources) {
-        if (!(await fetchAndSetGeekJoke(true, user?._id))) {
-          void fetchFromJokeAPI(0, selectedCategory)
-        }
-      } else if (rand === 4 && canUseEnglishOnlyExternalSources) {
         if (
           !(await fetchAndSetOfficialJoke(
             EOfficialJokeType.programming,
@@ -1225,7 +1200,7 @@ function Jokes() {
         ) {
           void fetchFromJokeAPI(0, selectedCategory)
         }
-      } else if (rand === 5 && canUseEnglishOnlyExternalSources) {
+      } else if (rand === 4 && canUseEnglishOnlyExternalSources) {
         if (
           !(await fetchAndSetOfficialJoke(
             EOfficialJokeType.general,
@@ -1286,27 +1261,26 @@ function Jokes() {
     category: ECategories.DadJoke | ECategories.ChuckNorris,
     isRandom: boolean
   ) {
-    // let joke: IJoke | undefined = undefined
+    let fetchedJoke: IDadJoke | INorrisJoke | undefined
 
     try {
-      let joke: IDadJoke | INorrisJoke | undefined = undefined
       if (category === ECategories.ChuckNorris && service === norrisService) {
         if (
           !isCheckedSafemode &&
           (!selectedNorrisCategory?.value ||
             selectedNorrisCategory?.value === 'any')
         ) {
-          joke = await service.getFullyRandomNorrisJoke()
+          fetchedJoke = await service.getFullyRandomNorrisJoke()
         } else if (
           selectedNorrisCategory?.value &&
           selectedNorrisCategory?.value !== 'any'
         ) {
-          joke = await service.getRandomJokeFromNorrisCategory(
+          fetchedJoke = await service.getRandomJokeFromNorrisCategory(
             String(selectedNorrisCategory?.value ?? '')
           )
         } else {
           const randomCategory = getRandomNorrisCategory()
-          joke = query
+          fetchedJoke = query
             ? await service.searchNorrisJoke(query)
             : await service.getRandomJokeFromNorrisCategory(
                 String(randomCategory.value ?? '')
@@ -1316,24 +1290,24 @@ function Jokes() {
         category === ECategories.DadJoke &&
         service === dadjokeService
       ) {
-        joke = query
+        fetchedJoke = query
           ? await service.searchDadJokes(query)
           : await service.getRandomDadJoke()
       }
 
-      if (!joke) {
+      if (!fetchedJoke) {
         void fetchFromJokeAPI()
       } else {
-        if (isJokeBlacklisted(joke.id ?? '')) {
+        if (isJokeBlacklisted(fetchedJoke.id ?? '')) {
           void fetchApi()
           return
         }
         setJokeCategory(category)
-        setJokeId(joke.id ?? '')
+        setJokeId(fetchedJoke.id ?? '')
 
         const type = category === ECategories.DadJoke ? 'dad' : 'norris'
 
-        setJokeData(joke, type, category, [], isRandom, user?._id)
+        setJokeData(fetchedJoke, type, category, [], isRandom, user?._id)
       }
     } catch (err: unknown) {
       const message = getErrorMessage(err, t('Error'))
@@ -1343,7 +1317,7 @@ function Jokes() {
     } finally {
     }
 
-    return !!joke
+    return !!fetchedJoke
   }
 
   const noJoke = () => {
@@ -1353,6 +1327,12 @@ function Jokes() {
 
     setJoke('')
     setDelivery('')
+  }
+
+  const clearDisplayedJoke = () => {
+    setJoke('')
+    setDelivery('')
+    setJokeId('')
   }
 
   const getRandomSelectedCategory = useCallback(() => {
@@ -1369,15 +1349,10 @@ function Jokes() {
     ]
   }, [categoryValues])
 
-  useEffect(() => {
-    if (categoryValues?.length < 1) {
-      setJokeCategory(null)
-    }
-  }, [categoryValues])
-
   const fetchFromJokeAPI = async (
     retryCount = 0,
-    selectedCategory: ECategories | null = getRandomSelectedCategory()
+    selectedCategory: ECategories | null = getRandomSelectedCategory(),
+    includeTypeFilter = true
   ) => {
     const category =
       selectedCategory &&
@@ -1385,12 +1360,11 @@ function Jokes() {
       selectedCategory !== ECategories.DadJoke
         ? selectedCategory
         : 'Any'
-    // console.log(
-    //   `https://v2.jokeapi.dev/joke/${category}?${queryKey}${queryValue}lang=${language}&format=json${safemode}&type=${jokeType}`
-    // )
+    const typeFilter =
+      includeTypeFilter && !acceptsEitherJokeType ? `&type=${jokeType}` : ''
 
     await fetch(
-      `https://v2.jokeapi.dev/joke/${category}?${queryKey}${queryValue}lang=${jokeLanguage}&format=json${safemode}&type=${jokeType}`
+      `https://v2.jokeapi.dev/joke/${category}?${queryKey}${queryValue}lang=${jokeLanguage}&format=json${safemode}${typeFilter}`
     )
       .then((res) => res.json() as Promise<IJokeApiResponse>)
       .then((data: IJokeApiResponse) => {
@@ -1398,6 +1372,11 @@ function Jokes() {
           return
         }
         if (data.error || data.id === undefined) {
+          if (category !== 'Any' && includeTypeFilter) {
+            void fetchFromJokeAPI(retryCount, selectedCategory, false)
+            return
+          }
+
           if (category === 'Any') {
             void dispatch(
               notify(
@@ -1408,14 +1387,10 @@ function Jokes() {
                 10
               )
             )
-            setJoke('')
-            setDelivery('')
-            setJokeId('')
+            clearDisplayedJoke()
             return
           }
 
-          setJoke('')
-          setDelivery('')
           void dispatch(
             notify(
               `${t('Error')}! ${t('NoJokeFoundWithThisSearchTerm')}`,
@@ -1424,7 +1399,32 @@ function Jokes() {
             )
           )
 
-          setJokeId('')
+          clearDisplayedJoke()
+          return
+        }
+
+        const actualJokeType =
+          data.type === 'twopart' ? EJokeType.twopart : EJokeType.single
+
+        if (
+          !includeTypeFilter &&
+          category !== 'Any' &&
+          !acceptsEitherJokeType &&
+          actualJokeType !== jokeType
+        ) {
+          const otherJokeTypeLabel =
+            jokeType === EJokeType.single ? t('TwoPart') : t('Single')
+
+          clearDisplayedJoke()
+          void dispatch(
+            notify(
+              `${t('Error')}! ${t('NoJokeFoundWithThisSearchTerm')}. ${t(
+                'TryTheOtherJokeType'
+              )} ${otherJokeTypeLabel}.`,
+              true,
+              8
+            )
+          )
           return
         }
 
@@ -1459,13 +1459,13 @@ function Jokes() {
           explicit: data.flags?.explicit ?? false,
         })
         setJokeCategory(data.category as ECategories)
-        if (jokeType === EJokeType.twopart) {
+        if (actualJokeType === EJokeType.twopart) {
           void dispatch(
             saveMostRecentJoke({
               jokeId: responseJokeId,
               setup: data.setup!,
               delivery: data.delivery!,
-              type: EJokeType.twopart,
+              type: actualJokeType,
               category: data.category as ECategories,
               subCategories:
                 subCategoryResults?.length > 0 ? subCategoryResults : undefined,
@@ -1495,7 +1495,7 @@ function Jokes() {
             saveMostRecentJoke({
               jokeId: responseJokeId,
               joke: data.joke!,
-              type: EJokeType.single,
+              type: actualJokeType,
               category: data.category as ECategories,
               subCategories:
                 subCategoryResults?.length > 0 ? subCategoryResults : undefined,
@@ -1556,22 +1556,6 @@ function Jokes() {
     [language] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
-  const fetchNorrisCategories = useCallback(async () => {
-    const norrisCat = (await norrisService.getNorrisCategories()) ?? []
-    const norrisCatOptions = optionsNorris(norrisCat, true)
-    const filteredNorrisCategories = isCheckedSafemode
-      ? norrisCatOptions.filter(
-          (category) =>
-            category.value !== 'explicit' &&
-            category.value !== 'religion' &&
-            category.value !== 'political'
-        )
-      : norrisCatOptions
-
-    if (isCheckedSafemode) setSelectedNorrisCategory(norrisCatOptions[0])
-    setNorrisCategories(filteredNorrisCategories)
-  }, [isCheckedSafemode, optionsNorris])
-
   const getCategoryInLanguage = (
     category: ECategories | null,
     language: ELanguages
@@ -1600,22 +1584,39 @@ function Jokes() {
   }
 
   useEffect(() => {
-    void fetchNorrisCategories()
-  }, [fetchNorrisCategories])
+    let cancelled = false
 
-  const queryKey = useMemo(
-    () =>
-      queryValue.trim() === '' || queryValue === '&'
-        ? EQueryKey.None
-        : EQueryKey.Contains,
-    [queryValue]
-  )
+    void (async () => {
+      const norrisCat = (await norrisService.getNorrisCategories()) ?? []
+      const norrisCatOptions = optionsNorris(norrisCat, true)
+      const filteredNorrisCategories = isCheckedSafemode
+        ? norrisCatOptions.filter(
+            (category) =>
+              category.value !== 'explicit' &&
+              category.value !== 'religion' &&
+              category.value !== 'political'
+          )
+        : norrisCatOptions
 
-  useEffect(() => {
-    if (queryValue === '&') {
-      setQueryValue('')
+      if (cancelled) {
+        return
+      }
+
+      if (isCheckedSafemode) {
+        setSelectedNorrisCategory(norrisCatOptions[0])
+      }
+      setNorrisCategories(filteredNorrisCategories)
+    })()
+
+    return () => {
+      cancelled = true
     }
-  }, [queryValue])
+  }, [isCheckedSafemode, optionsNorris])
+
+  const queryKey =
+    queryValue.trim() === '' || queryValue === '&'
+      ? EQueryKey.None
+      : EQueryKey.Contains
 
   const navigate = useNavigate()
 
@@ -1757,7 +1758,15 @@ function Jokes() {
 
   const fill2 = lightTheme
     ? 'hsl(var(--hue-secondary), var(--sat), 88%)'
-    : 'hsl(var(--hue-secondary), 100%, 4%)'
+    : 'hsl(var(--hue-secondary), 20%, 5%)'
+
+  const stroke1 = lightTheme
+    ? 'hsl(var(--hue-tertiary), var(--sat-semi), 22%)'
+    : 'hsl(var(--hue-tertiary), var(--sat-fade), 70%)'
+
+  const stroke2 = lightTheme
+    ? 'hsl(var(--hue-secondary), var(--sat-semi), 20%)'
+    : 'hsl(var(--hue-secondary), 10%, 55%)'
 
   return (
     <>
@@ -1770,10 +1779,10 @@ function Jokes() {
             <h1
               style={{
                 display: 'flex',
-                flexFlow: windowWidth < 600 ? 'column nowrap' : 'row nowrap',
-                alignItems: windowWidth < 600 ? 'center' : 'flex-end',
+                flexFlow: windowWidth < 600 ? 'row wrap' : 'row nowrap',
+                alignItems: 'center',
                 justifyContent: 'center',
-                gap: '0',
+                gap: windowWidth < 600 ? '0.4em 0.5em' : '0.4em 0',
                 color: lightTheme
                   ? 'hsl(var(--hue-tertiary), var(--sat-fade), 15%)'
                   : 'hsl(var(--hue-tertiary), var(--sat-fade), 70%)',
@@ -1782,8 +1791,8 @@ function Jokes() {
               <p style={{ width: '1.4em', margin: 0 }}>
                 <JokeIcon
                   aria-hidden="true"
-                  stroke="currentColor"
-                  strokeWidth={lightTheme ? 0.66 : 0.3}
+                  stroke={stroke1}
+                  strokeWidth={lightTheme ? 0.66 : 0.44}
                   fontSize={1.28}
                   flip={true}
                   hatStyle={{
@@ -1797,6 +1806,7 @@ function Jokes() {
                   zIndex: 2,
                   flex: '0 1 max-content',
                   borderRadius: '0.2em',
+                  order: windowWidth < 600 ? 2 : 0,
                 }}
               >
                 {t('TheComediansCompanion')}
@@ -1805,12 +1815,13 @@ function Jokes() {
                 style={{
                   width: '1.4em',
                   margin: '0 0.11em 0 -0.11em',
+                  alignSelf: windowWidth < 600 ? 'flex-end' : 'center',
                 }}
               >
                 <JokeIcon
                   aria-hidden="true"
-                  stroke="currentColor"
-                  strokeWidth={lightTheme ? 0.66 : 0.3}
+                  stroke={stroke2}
+                  strokeWidth={lightTheme ? 0.66 : 0.44}
                   fontSize={1}
                   hatStyle={{
                     fill: fill2,
@@ -1831,8 +1842,8 @@ function Jokes() {
               jokeCategory={jokeCategory}
               setJokeCategory={setJokeCategory}
               categoryValues={categoryValues}
-              setCategoryValues={setCategoryValues}
-              setQueryValue={setQueryValue}
+              setCategoryValues={handleCategoryValuesChange}
+              setQueryValue={handleQueryValueChange}
               joke={joke}
               delivery={delivery}
               jokeId={jokeId}
@@ -1843,8 +1854,12 @@ function Jokes() {
               setQuery={setQuery}
               isCheckedSafemode={isCheckedSafemode}
               isCheckedJokeType={isCheckedJokeType}
+              isCheckedEitherJokeType={isCheckedEitherJokeType}
               handleToggleChangeSafemode={handleToggleChangeSafemode}
               handleToggleChangeEJokeType={handleToggleChangeEJokeType}
+              handleToggleChangeEitherJokeType={
+                handleToggleChangeEitherJokeType
+              }
               submitted={submitted}
               reveal={reveal}
               setReveal={setReveal}
