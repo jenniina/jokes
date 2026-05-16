@@ -87,7 +87,18 @@ const FormLogin = ({ setIsFormOpen, isOpen, text }: LoginProps) => {
           </button>
           <button
             disabled={user.name === 'temp'}
-            onClick={() => user && dispatch(logoutAllDevices(user._id ?? ''))}
+            onClick={() => {
+              if (!user) return
+              dispatch(logoutAllDevices(user._id ?? ''))
+                .then(() => {
+                  void dispatch(notify(t('AllSessionsRevoked'), false, 4))
+                })
+                .catch((err: unknown) => {
+                  console.error(err)
+                  const message = getErrorMessage(err, t('Error'))
+                  void dispatch(notify(message, true, 8))
+                })
+            }}
             className="reset logout-all"
           >
             [{t('LogoutAllDevices')}]

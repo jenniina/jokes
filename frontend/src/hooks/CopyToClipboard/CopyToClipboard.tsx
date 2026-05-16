@@ -62,11 +62,11 @@ export default function CopyToClipboard({
         aria-describedby={statusId}
       >
         <strong>{label}</strong>
-        <span className="tooltip right below narrow2" role="tooltip">
+        <span aria-hidden="true" className="tooltip right below narrow2">
           {ariaLabel ?? t('CopyToClipboard')}
         </span>{' '}
         <span id={statusId} className="scr" role="status" aria-live="polite">
-          {copied ? t('CopiedToClipboard') : ''}
+          {copied ? t('CopiedToClipboard') : t('CopyToClipboard')}
         </span>
       </button>
     </>

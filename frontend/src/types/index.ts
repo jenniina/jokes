@@ -33,7 +33,7 @@ export interface IToken extends IResponse {
 export interface credentials {
   username: string
   password: string
-  language: string
+  language: ELanguages
 }
 
 export interface IUser {
@@ -43,7 +43,7 @@ export interface IUser {
   role?: number
   password: string
   passwordOld?: string
-  language: ELanguages | string
+  language: ELanguages
   verified?: boolean
   createdAt?: string
   updatedAt?: string

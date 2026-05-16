@@ -173,7 +173,7 @@ export const updateUserToken = (user: Pick<IUser, 'username' | 'language'>) => {
 
 export const forgot = (
   username: string | undefined,
-  language: string | ELanguages
+  language: ELanguages
 ) => {
   return async (
     dispatch: (arg0: {
@@ -189,7 +189,7 @@ export const forgot = (
     } else {
       return {
         success: false,
-        message: t.PleaseGiveValidEmail[(language as ELanguages) ?? 'en'],
+        message: t.PleaseGiveValidEmail[language],
       }
     }
   }

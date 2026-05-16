@@ -1683,6 +1683,15 @@ export const translations = {
     cs: 'Odhlásit všechna zařízení',
     fi: 'Kirjaudu ulos kaikista laitteista',
   },
+  AllSessionsRevoked: {
+    en: 'All sessions revoked',
+    es: 'Todas las sesiones revocadas',
+    fr: 'Toutes les sessions révoquées',
+    de: 'Alle Sitzungen widerrufen',
+    pt: 'Todas as sessões revogadas',
+    cs: 'Všechny relace zrušeny',
+    fi: 'Kaikki istunnot peruutettu',
+  },
   ReactApps: {
     en: 'React apps',
     es: 'Aplicaciones React',

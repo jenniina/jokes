@@ -139,12 +139,14 @@ const Accordion = forwardRef(
             &nbsp;&laquo;
           </span>
           <strong
+            aria-hidden="true"
             className={
               props.tooltip ? `tooltip narrow2 ${props.x} ${props.y}` : ''
             }
           >
             {props.tooltip}
           </strong>
+          <span className="scr">{props.tooltip}</span>
         </button>
         <div
           id={`${props.id ?? props.className}-container`}

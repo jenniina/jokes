@@ -27,7 +27,7 @@ const getRandomOfficialJoke = async (type: EOfficialJokeType) => {
   const response = await axios.get<OfficialJokeResponse>(
     `${OFFICIAL_JOKE_URI}/${type}/random`
   )
-  if (!response.data || response.data[0] === undefined) {
+  if (!response.data?.[0]) {
     return null
   }
   return response.data[0]

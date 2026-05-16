@@ -110,6 +110,135 @@ export enum EOrderByAge {
   oldest = 'oldest',
 }
 
+interface PaginationProps {
+  index: number
+  pageNumbers: number[]
+  safeCurrentPage: number
+  visiblePageNumbers: number[]
+  itemsPerPage: number
+  onPageChange: (pageNumber: number, scroll: boolean) => void
+  onItemsPerPageChange: (value: number) => void
+  t: ReturnType<typeof useLanguageContext>['t']
+}
+
+function Pagination({
+  index,
+  pageNumbers,
+  safeCurrentPage,
+  visiblePageNumbers,
+  itemsPerPage,
+  onPageChange,
+  onItemsPerPageChange,
+  t,
+}: PaginationProps) {
+  return (
+    <div className="pagination">
+      {pageNumbers?.length > 1 && (
+        <div>
+          <span>
+            {safeCurrentPage} / {pageNumbers?.length}
+          </span>
+        </div>
+      )}
+      <div>
+        <div className="chevrons-wrap back">
+          <button
+            className={`inner-nav-btn first tooltip-wrap ${
+              safeCurrentPage === 1 ? 'disabled' : ''
+            } ${pageNumbers?.length <= 3 ? 'hidden' : ''}`}
+            disabled={safeCurrentPage === 1}
+            onClick={() => onPageChange(1, true)}
+          >
+            <Icon lib="bi" name="BiChevronsLeft" aria-hidden="true" />{' '}
+            <span aria-hidden="true" className="tooltip narrow2 below right">
+              {t('FirstPage')}
+            </span>
+            <span className="scr">{t('FirstPage')}</span>
+          </button>
+          <button
+            className={`inner-nav-btn back tooltip-wrap ${
+              safeCurrentPage === 1 ? 'disabled' : ''
+            } ${pageNumbers?.length <= 3 ? 'hidden' : ''}`}
+            disabled={safeCurrentPage === 1}
+            onClick={() => onPageChange(safeCurrentPage - 1, true)}
+          >
+            <Icon lib="bi" name="BiChevronLeft" aria-hidden="true" />{' '}
+            <span aria-hidden="true" className="tooltip narrow2 below right">
+              {t('Back')}
+            </span>
+            <span className="scr">{t('Back')}</span>
+          </button>
+        </div>
+        <div className={`numbers${pageNumbers?.length === 1 ? ' hidden' : ''}`}>
+          {visiblePageNumbers?.map((number) => (
+            <button
+              key={number}
+              className={`${
+                number > 9
+                  ? 'over9'
+                  : number > 99
+                    ? 'over99'
+                    : number > 999
+                      ? 'over999'
+                      : ''
+              } ${number === safeCurrentPage ? 'active' : ''}`}
+              onClick={() => onPageChange(number, true)}
+            >
+              <span>{number}</span>
+            </button>
+          ))}
+        </div>
+        <div className="chevrons-wrap forward">
+          <button
+            className={`inner-nav-btn forward tooltip-wrap ${
+              safeCurrentPage === pageNumbers?.length ? 'disabled' : ''
+            } ${pageNumbers?.length <= 3 ? 'hidden' : ''}`}
+            disabled={safeCurrentPage === pageNumbers?.length}
+            onClick={() => onPageChange(safeCurrentPage + 1, true)}
+          >
+            <Icon lib="bi" name="BiChevronRight" aria-hidden="true" />{' '}
+            <span aria-hidden="true" className="tooltip narrow2 below left">
+              {t('Next')}
+            </span>
+            <span className="scr">{t('Next')}</span>
+          </button>
+          <button
+            className={`inner-nav-btn last tooltip-wrap ${
+              safeCurrentPage === pageNumbers?.length ? 'disabled' : ''
+            } ${pageNumbers?.length <= 3 ? 'hidden' : ''}`}
+            disabled={safeCurrentPage === pageNumbers?.length}
+            onClick={() => onPageChange(pageNumbers?.length, true)}
+          >
+            <Icon lib="bi" name="BiChevronsRight" aria-hidden="true" />
+            <span aria-hidden="true" className="tooltip narrow2 left below">
+              {t('LastPage')}: {pageNumbers?.length}
+            </span>
+            <span className="scr">
+              {t('LastPage')}: {pageNumbers?.length}
+            </span>
+          </button>
+        </div>
+      </div>
+      <div>
+        <input
+          aria-labelledby="items-per-page"
+          className="items-per-page narrow"
+          name="items-per-page"
+          id={`items-per-page-input-${index}`}
+          type="number"
+          min="1"
+          max="100"
+          defaultValue={itemsPerPage}
+          onChange={(e) => {
+            onItemsPerPageChange(e.target.valueAsNumber)
+          }}
+        />{' '}
+        <span id="items-per-page">{t('PerPage')}</span>{' '}
+      </div>
+    </div>
+  )
+}
+
 const UserJokes = ({
   user,
   handleDelete,
@@ -206,9 +335,7 @@ const UserJokes = ({
   const [randomTrigger, setRandomTrigger] = useState<number>(0)
   const [sortBy, setSortBy] = useState<ESortBy_en>(ESortBy_en.popularity)
   const [searchTerm, setSearchTerm] = useState<string>('')
-  const [selectedCategory, setSelectedCategory] = useState<
-    ECategories | 'ChuckNorris' | ''
-  >('')
+  const [selectedCategory, setSelectedCategory] = useState<ECategories | ''>('')
   const [selectedLanguage, setSelectedLanguage] = useState<ELanguages | ''>('')
   const [selectedNorrisCategoryValue, setSelectedNorrisCategoryValue] =
     useState<SelectOption | undefined>(norrisCategories[0])
@@ -229,10 +356,7 @@ const UserJokes = ({
   const localJokes = !userId || showLocalJokes
   const showBlacklistedView = Boolean(userId) && showBlacklistedJokes
   const showUnverifiedView = Boolean(userId) && isAdmin && showUnverifiedJokes
-  const normalizedSelectedCategory = String(selectedCategory)
-  const hasNorris =
-    normalizedSelectedCategory === ECategories.ChuckNorris ||
-    normalizedSelectedCategory === 'ChuckNorris'
+  const hasNorris = selectedCategory === ECategories.ChuckNorris
   const sortByAge = isCheckedNewest ? EOrderByAge.newest : EOrderByAge.oldest
 
   const userJokes = useMemo(() => {
@@ -297,11 +421,13 @@ const UserJokes = ({
   }
 
   const handleCategoryChange = (category: string) => {
-    let modifiedCategory: ECategories | '' = category as ECategories | ''
+    let modifiedCategory: ECategories | '' = ''
     if (category === 'Chuck Norris') {
-      modifiedCategory = 'ChuckNorris' as ECategories
+      modifiedCategory = ECategories.ChuckNorris
     } else if (category === 'Dad Joke') {
-      modifiedCategory = 'DadJoke' as ECategories
+      modifiedCategory = ECategories.DadJoke
+    } else if (Object.values(ECategories).includes(category as ECategories)) {
+      modifiedCategory = category as ECategories
     }
     setCurrentPage(1)
     setSelectedCategory(modifiedCategory)
@@ -388,7 +514,7 @@ const UserJokes = ({
     )
   }, [norrisOptions, selectedNorrisCategoryValue])
 
-  const filteredJokes = useMemo(() => {
+  const filteredJokesBase = useMemo(() => {
     let nextFilteredJokes = [...userJokes]
 
     if (sortBy === ESortBy_en.age) {
@@ -485,19 +611,11 @@ const UserJokes = ({
       )
     }
 
-    if (isRandom && nextFilteredJokes.length > 0) {
-      const randomJoke =
-        nextFilteredJokes[Math.floor(Math.random() * nextFilteredJokes.length)]
-      return [randomJoke]
-    }
-
     return latest ? nextFilteredJokes.slice(0, latestNumber) : nextFilteredJokes
   }, [
-    isRandom,
     latest,
     latestNumber,
     localJokes,
-    randomTrigger,
     searchTerm,
     selectedCategory,
     selectedLanguage,
@@ -508,6 +626,18 @@ const UserJokes = ({
     userId,
     userJokes,
   ])
+
+  const filteredJokes = useMemo(() => {
+    if (!isRandom || filteredJokesBase.length === 0) {
+      return filteredJokesBase
+    }
+
+    const randomIndex =
+      Math.abs(randomTrigger * 48271 + filteredJokesBase.length) %
+      filteredJokesBase.length
+
+    return [filteredJokesBase[randomIndex]]
+  }, [filteredJokesBase, isRandom, randomTrigger])
 
   const resetFilters = () => {
     setSelectedCategory('')
@@ -714,105 +844,6 @@ const UserJokes = ({
     }
   }
 
-  const pagination = (index: number) => (
-    <div className="pagination">
-      {pageNumbers?.length > 1 && (
-        <div>
-          <span>
-            {safeCurrentPage} / {pageNumbers?.length}
-          </span>
-        </div>
-      )}
-      <div>
-        <div className="chevrons-wrap back">
-          <button
-            className={`inner-nav-btn first tooltip-wrap ${
-              safeCurrentPage === 1 ? 'disabled' : ''
-            } ${pageNumbers?.length <= 3 ? 'hidden' : ''}`}
-            disabled={safeCurrentPage === 1}
-            onClick={() => handlePageChange(1, true)}
-          >
-            <Icon lib="bi" name="BiChevronsLeft" />{' '}
-            <span className="tooltip narrow2 below right">
-              {t('FirstPage')}
-            </span>
-          </button>
-          <button
-            className={`inner-nav-btn back tooltip-wrap ${
-              safeCurrentPage === 1 ? 'disabled' : ''
-            } ${pageNumbers?.length <= 3 ? 'hidden' : ''}`}
-            disabled={safeCurrentPage === 1}
-            onClick={() => handlePageChange(safeCurrentPage - 1, true)}
-          >
-            <Icon lib="bi" name="BiChevronLeft" />{' '}
-            <span className="tooltip narrow2 below right">{t('Back')}</span>
-          </button>
-        </div>
-        <div className={`numbers${pageNumbers?.length === 1 ? ' hidden' : ''}`}>
-          {visiblePageNumbers?.map((number) => (
-            <button
-              key={number}
-              className={`${
-                number > 9
-                  ? 'over9'
-                  : number > 99
-                    ? 'over99'
-                    : number > 999
-                      ? 'over999'
-                      : ''
-              } ${number === safeCurrentPage ? 'active' : ''}`}
-              onClick={() => handlePageChange(number, true)}
-            >
-              <span>{number}</span>
-            </button>
-          ))}
-        </div>
-        <div className="chevrons-wrap forward">
-          <button
-            className={`inner-nav-btn forward tooltip-wrap ${
-              safeCurrentPage === pageNumbers?.length ? 'disabled' : ''
-            } ${pageNumbers?.length <= 3 ? 'hidden' : ''}`}
-            disabled={safeCurrentPage === pageNumbers?.length}
-            onClick={() => handlePageChange(safeCurrentPage + 1, true)}
-          >
-            <Icon lib="bi" name="BiChevronRight" />{' '}
-            <span className="tooltip narrow2 below left">{t('Next')}</span>
-          </button>
-          <button
-            className={`inner-nav-btn last tooltip-wrap ${
-              safeCurrentPage === pageNumbers?.length ? 'disabled' : ''
-            } ${pageNumbers?.length <= 3 ? 'hidden' : ''}`}
-            disabled={safeCurrentPage === pageNumbers?.length}
-            onClick={() => handlePageChange(pageNumbers?.length, true)}
-          >
-            <Icon lib="bi" name="BiChevronsRight" />
-            <span className="tooltip narrow2 left below">
-              {t('LastPage')}: {pageNumbers?.length}
-            </span>
-          </button>
-        </div>
-      </div>
-      <div>
-        <input
-          aria-labelledby="items-per-page"
-          className="items-per-page narrow"
-          name="items-per-page"
-          id={`items-per-page-input-${index}`}
-          type="number"
-          min="1"
-          max="100"
-          defaultValue={itemsPerPage}
-          onChange={(e) => {
-            setCurrentPage(1)
-            setItemsPerPage(
-              e.target.valueAsNumber > 0 ? e.target.valueAsNumber : 1
-            )
-          }}
-        />{' '}
-        <span id="items-per-page">{t('PerPage')}</span>{' '}
-      </div>
-    </div>
-  )
   return (
     <div className="saved" id="saved">
       {userId && (
@@ -922,12 +953,10 @@ const UserJokes = ({
                           z={6}
                           instructions={`${t('OrderBy')}:`}
                           options={optionsSortBy(ESortBy)}
-                          value={
-                            {
-                              label: ESortBy[sortBy][ELanguages[language]],
-                              value: ESortBy[sortBy][ELanguages[language]],
-                            } as SelectOption
-                          }
+                          value={{
+                            label: ESortBy[sortBy][ELanguages[language]],
+                            value: ESortBy[sortBy][ELanguages[language]],
+                          }}
                           onChange={(o: SelectOption | undefined) => {
                             setSortBy(o?.value as ESortBy_en)
                           }}
@@ -955,10 +984,10 @@ const UserJokes = ({
                           ]}
                           value={
                             selectedLanguage
-                              ? ({
+                              ? {
                                   label: getLanguageLabel(selectedLanguage),
                                   value: selectedLanguage,
-                                } as SelectOption)
+                                }
                               : { label: t('All'), value: '' }
                           }
                           onChange={(o: SelectOption | undefined) => {
@@ -987,13 +1016,14 @@ const UserJokes = ({
                           ]}
                           value={
                             selectedCategory
-                              ? ({
-                                  label: getCategoryInLanguage(
-                                    selectedCategory as ECategories,
-                                    language
-                                  ),
+                              ? {
+                                  label:
+                                    getCategoryInLanguage(
+                                      selectedCategory,
+                                      language
+                                    ) ?? t('SelectACategory'),
                                   value: selectedCategory,
-                                } as SelectOption)
+                                }
                               : { label: t('SelectACategory'), value: '' }
                           }
                           onChange={(o) => {
@@ -1160,7 +1190,21 @@ const UserJokes = ({
                 )}
               </div>
 
-              {!isRandom && !showBlacklistedJokes && pagination(1)}
+              {!isRandom && !showBlacklistedJokes && (
+                <Pagination
+                  index={1}
+                  pageNumbers={pageNumbers}
+                  safeCurrentPage={safeCurrentPage}
+                  visiblePageNumbers={visiblePageNumbers}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={handlePageChange}
+                  onItemsPerPageChange={(value) => {
+                    setCurrentPage(1)
+                    setItemsPerPage(value > 0 ? value : 1)
+                  }}
+                  t={t}
+                />
+              )}
 
               {/* Pagination scroll anchor (always present) */}
               <div ref={localStart} />
@@ -1332,11 +1376,14 @@ const UserJokes = ({
                           <div>
                             {userId && joke.user?.includes(userId) && (
                               <form
-                                onSubmit={
-                                  joke.type === EJokeType.single
-                                    ? handleDelete(joke?._id, joke?.joke)
-                                    : handleDelete(joke?._id, joke?.setup)
-                                }
+                                onSubmit={(event) => {
+                                  const submitHandler =
+                                    joke.type === EJokeType.single
+                                      ? handleDelete(joke?._id, joke?.joke)
+                                      : handleDelete(joke?._id, joke?.setup)
+
+                                  void submitHandler(event)
+                                }}
                                 className="button-wrap"
                               >
                                 <button
@@ -1406,15 +1453,17 @@ const UserJokes = ({
                                   onClick={() => {
                                     setJokeLanguage(joke.language)
                                     setJokeCategory(joke.category)
-                                    setNewJoke(restOfJoke as IJoke)
+                                    setNewJoke(restOfJoke)
                                   }}
                                   isOpen={editId === joke.jokeId}
                                 >
                                   <form
-                                    onSubmit={handleUpdate(
-                                      joke?._id,
-                                      newJoke ?? joke
-                                    )}
+                                    onSubmit={(event) => {
+                                      void handleUpdate(
+                                        joke?._id,
+                                        newJoke ?? joke
+                                      )(event)
+                                    }}
                                     className="joke-edit"
                                   >
                                     <div className="edit-wrap">
@@ -1511,15 +1560,11 @@ const UserJokes = ({
                                             instructions={`${t('LanguageTitle')}:`}
                                             hide
                                             options={options(ELanguagesLong)}
-                                            value={
-                                              {
-                                                label:
-                                                  getLanguageLabel(
-                                                    jokeLanguage
-                                                  ),
-                                                value: jokeLanguage,
-                                              } as SelectOption
-                                            }
+                                            value={{
+                                              label:
+                                                getLanguageLabel(jokeLanguage),
+                                              value: jokeLanguage,
+                                            }}
                                             onChange={(o) => {
                                               setJokeLanguage(
                                                 o?.value as ELanguages
@@ -1769,10 +1814,21 @@ const UserJokes = ({
               </ul>
             </>
           )}
-          {!showUnverifiedJokes &&
-            !isRandom &&
-            !showBlacklistedJokes &&
-            pagination(2)}
+          {!showUnverifiedJokes && !isRandom && !showBlacklistedJokes && (
+            <Pagination
+              index={2}
+              pageNumbers={pageNumbers}
+              safeCurrentPage={safeCurrentPage}
+              visiblePageNumbers={visiblePageNumbers}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={(value) => {
+                setCurrentPage(1)
+                setItemsPerPage(value > 0 ? value : 1)
+              }}
+              t={t}
+            />
+          )}
         </div>
         <div className="filler below"></div>
       </div>
