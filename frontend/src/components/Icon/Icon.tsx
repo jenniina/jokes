@@ -5,7 +5,7 @@ import { iconLibraries } from './iconLibraries'
 type IconLibraries = typeof iconLibraries
 type IconLib = keyof IconLibraries
 
-type BaseIconProps = {
+interface BaseIconProps {
   className?: string
   style?: CSSProperties
   height?: string
@@ -15,6 +15,8 @@ type BaseIconProps = {
   'aria-hidden'?: boolean | 'true' | 'false'
   'aria-label'?: string
 }
+
+type IconComponent = ComponentType<BaseIconProps>
 
 type IconProps =
   | {
@@ -41,12 +43,10 @@ const Icon = ({
   'aria-label': ariaLabel,
 }: IconProps) => {
   const library = lib ? iconLibraries[lib] : undefined
-  // const IconComp = lib && name ? (library?.[name] ?? null) : null
   const IconComp =
     lib && name
-      ? (((iconLibraries[lib] as Record<string, ComponentType<any>>)[
-          name as string
-        ] ?? null) as ComponentType<any> | null)
+      ? (((iconLibraries[lib] as Record<string, IconComponent>)[name as string] ??
+          null) as IconComponent | null)
       : null
 
   const isMissing = !lib || !name || !library || !IconComp

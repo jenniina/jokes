@@ -14,7 +14,6 @@ import {
   breakpointSmall,
   ELanguages,
   ELanguagesLong,
-  IUser,
   ReducerProps,
 } from '../../types'
 import { useAppDispatch } from '../../hooks/useAppDispatch'
@@ -24,7 +23,7 @@ import FormLogin from '../Login/Login'
 import Register from '../Register/Register'
 import PasswordReset from '../PasswordReset/PasswordReset'
 import Accordion from '../Accordion/Accordion'
-import { Select, SelectOption } from '../Select/Select'
+import { Select } from '../Select/Select'
 import { options, getErrorMessage } from '../../utils'
 import { useLanguageContext } from '../../contexts/LanguageContext'
 import Icon from '../Icon/Icon'
@@ -33,11 +32,7 @@ import useExitVisibility from '../../hooks/useExitVisibility'
 import useWindowSize from '../../hooks/useWindowSize'
 import { isTouchDevice } from '../../hooks/useDraggable'
 import { useSelector } from 'react-redux'
-import {
-  initializeUser,
-  logout,
-  logoutAllDevices,
-} from '../../reducers/authReducer'
+import { initializeUser } from '../../reducers/authReducer'
 import JokeIcon from '../Icon/JokeIcon'
 import { useOutsideClick } from '../../hooks/useOutsideClick'
 import { useIsClient, useWindow } from '../../hooks/useSSR'
@@ -143,6 +138,7 @@ const Nav = forwardRef<{ getStyle: () => boolean }>((_props, ref) => {
       toolbar.show()
       setOpenForm('reset')
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search])
 
   useEffect(() => {
@@ -217,9 +213,10 @@ const Nav = forwardRef<{ getStyle: () => boolean }>((_props, ref) => {
     void api
       .get(`/jokes/${jokeId}/verification`)
       .then((response) => {
+        const responseData = response.data as { message?: string } | undefined
         void dispatch(
           notify(
-            response.data?.message ?? t('JokeVerificationSucceeded'),
+            responseData?.message ?? t('JokeVerificationSucceeded'),
             false,
             8
           )
@@ -275,7 +272,7 @@ const Nav = forwardRef<{ getStyle: () => boolean }>((_props, ref) => {
           password,
           name,
           language,
-        } as IUser)
+        })
       )
 
       void dispatch(
@@ -295,10 +292,6 @@ const Nav = forwardRef<{ getStyle: () => boolean }>((_props, ref) => {
     }
   }
 
-  const handleLogout = useCallback(() => {
-    void dispatch(logout())
-  }, [dispatch])
-
   const toggleToolbar = useCallback(() => {
     if (!toolbar.open) {
       toolbar.show()
@@ -315,7 +308,7 @@ const Nav = forwardRef<{ getStyle: () => boolean }>((_props, ref) => {
     } else {
       mainMenu.show()
     }
-  }, [mainMenu, isClient, windowObj, scrollDirection])
+  }, [mainMenu, isClient, scrollDirection, toolbar, windowObj])
 
   useEffect(() => {
     window.addEventListener('scroll', scrolledDown)
@@ -388,10 +381,10 @@ const Nav = forwardRef<{ getStyle: () => boolean }>((_props, ref) => {
             options={options(ELanguagesLong)}
             value={
               language
-                ? ({
+                ? {
                     value: language,
                     label: ELanguagesLong[language],
-                  } as SelectOption)
+                  }
                 : undefined
             }
             onChange={(o) => {
@@ -439,7 +432,9 @@ const Nav = forwardRef<{ getStyle: () => boolean }>((_props, ref) => {
                   <Register
                     setIsFormOpen={bindForm('register')}
                     isOpen={isRegisterFormOpen}
-                    handleRegister={handleRegister}
+                    handleRegister={(event) => {
+                      void handleRegister(event)
+                    }}
                     username={username}
                     setUsername={setUsername}
                     password={password}
@@ -498,5 +493,7 @@ const Nav = forwardRef<{ getStyle: () => boolean }>((_props, ref) => {
     </header>
   )
 })
+
+Nav.displayName = 'Nav'
 
 export default Nav

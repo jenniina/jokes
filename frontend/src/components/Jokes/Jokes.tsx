@@ -66,7 +66,6 @@ import FormJoke from './components/FormJoke'
 import JokeSubmit from './components/JokeSubmit'
 import useLocalStorage from '../../hooks/useStorage'
 import usersService from '../../services/users'
-import Icon from '../Icon/Icon'
 import JokeIcon from '../Icon/JokeIcon'
 import useWindowSize from '../../hooks/useWindowSize'
 import { useTheme } from '../../hooks/useTheme'
@@ -606,16 +605,14 @@ function Jokes() {
       return false
     }
 
-    const flags =
-      flagsOverride ??
-      ({
+    const flags: IJoke['flags'] = flagsOverride ?? {
         nsfw: false,
         religious: false,
         political: false,
         racist: false,
         sexist: false,
         explicit: false,
-      } as IJoke['flags'])
+      }
 
     setJokeCategory(category)
     setSubCategoryResults(subCategories ?? [])
@@ -868,7 +865,7 @@ function Jokes() {
                 ? publicUserNames?.[random.author]
                 : undefined
 
-            setAuthor((authorNameFromPublic ?? '') as string)
+            setAuthor(authorNameFromPublic ?? '')
           } else {
             setAuthor('')
           }
@@ -1022,7 +1019,7 @@ function Jokes() {
     else if (
       newFilteredJokes &&
       newFilteredJokes?.length > 0 &&
-      Math.random() < 0.1
+      getRandomMinMax(0, 1) < 0.1
     ) {
       void handleJokes(newFilteredJokes)
       return
@@ -1106,7 +1103,7 @@ function Jokes() {
               ECategories.DadJoke,
               !isQueryNotEmpty
             )
-          : Math.random() < 0.5
+          : getRandomMinMax(0, 1) < 0.5
             ? await fetchAndSetJoke(
                 dadjokeService,
                 null,

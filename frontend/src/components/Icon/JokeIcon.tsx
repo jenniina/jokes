@@ -22,6 +22,7 @@ const JokeIcon: React.FC<JokeIconProps> = ({
   return (
     <span
       className={`joke-icon ${flip ? 'flipped' : ''}`}
+      title={title}
       style={{
         ['--joke-icon-size' as string]: iconSize,
         ['--joke-icon-flip' as string]: flip ? -1 : 1,

@@ -19,7 +19,7 @@ const LanguageEdit = ({ user, options }: Props) => {
   const [passwordOld, setPasswordOld] = useState<IUser['password']>('')
   const { t, language, setLanguage } = useLanguageContext()
   const [lang, setLang] = useState<ELanguages>(
-    (user?.language as ELanguages) ?? language
+    user?.language ?? language
   )
   const [sending, setSending] = useState(false)
 
@@ -89,10 +89,10 @@ const LanguageEdit = ({ user, options }: Props) => {
           options={options(ELanguagesLong)}
           value={
             lang
-              ? ({
+              ? {
                   value: lang,
                   label: ELanguagesLong[lang],
-                } as SelectOption)
+                }
               : undefined
           }
           onChange={(option) => {

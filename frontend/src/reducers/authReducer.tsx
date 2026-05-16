@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import loginService from '../services/login'
 import userService from '../services/users'
-import { IUser } from '../types'
+import { ELanguages, IUser } from '../types'
 import { sleep } from '../utils'
 import api from '../services/api'
 
@@ -43,7 +43,11 @@ export const initializeUser = () => {
   }
 }
 
-export const login = (username: string, password: string, language: string) => {
+export const login = (
+  username: string,
+  password: string,
+  language: ELanguages
+) => {
   return async (
     dispatch: (arg0: { payload: IUser | null; type: string }) => void
   ) => {
@@ -81,12 +85,13 @@ export const refreshUser = (user: IUser) => {
     const loggedUserJSON = window?.localStorage.getItem('loggedJokeAppUser')
     if (!loggedUserJSON) return
 
+    const storedUser = JSON.parse(loggedUserJSON) as StoredUser
+
     await api.get('/auth/ping', {
-      headers: { Authorization: `Bearer ${JSON.parse(loggedUserJSON).token}` },
+      headers: { Authorization: `Bearer ${storedUser.token ?? ''}` },
     })
 
-    const data = JSON.parse(loggedUserJSON) as StoredUser
-    const token = data.token ?? null
+    const token = storedUser.token ?? null
 
     if (token) localStorage.setItem('JokeApptoken', token)
 

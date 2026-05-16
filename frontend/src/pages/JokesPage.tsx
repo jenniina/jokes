@@ -1,18 +1,7 @@
-import { SyntheticEvent, useRef, useState } from 'react'
-import {
-  jokeCategoryByLanguage,
-  jokeCategoryAny,
-} from '../components/Jokes/types'
+import { useRef, useState } from 'react'
 import Accordion from '../components/Accordion/Accordion'
 import Icon from '../components/Icon/Icon'
-import {
-  breakpointSmall,
-  ELanguages,
-  ELanguagesLong,
-  LanguageOfLanguage,
-} from '../types'
-import { Select, SelectOption } from '../components/Select/Select'
-import { options } from '../utils'
+import { breakpointSmall } from '../types'
 import { useLanguageContext } from '../contexts/LanguageContext'
 import Jokes from '../components/Jokes/Jokes'
 import SEO from '../components/SEO/SEO'

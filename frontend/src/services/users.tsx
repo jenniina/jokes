@@ -108,7 +108,7 @@ const searchId = async (id: string | undefined) => {
 
 const forgot = async (
   username: string | undefined,
-  language: string | ELanguages
+  language: ELanguages
 ): Promise<IResponse> => {
   const response = await api.post(`${baseUrl}/forgot`, {
     username,
@@ -117,7 +117,7 @@ const forgot = async (
   return response.data as IResponse
 }
 const revokeSessions = async (id: string) => {
-  const response = await api.post(`${baseUrl}/${id}/revoke-sessions`)
+  const response = await api.post<IResponse>(`${baseUrl}/${id}/revoke-sessions`)
   return response.data
 }
 
@@ -127,9 +127,12 @@ const getPublicUserNamesByIds = async (
   const uniqueIds = Array.from(new Set(ids)).filter(Boolean)
   if (uniqueIds.length === 0) return {}
 
-  const response = await api.post('/users/public/names', { ids: uniqueIds })
+  const response = await api.post<{ users?: IPublicUserName[] }>(
+    '/users/public/names',
+    { ids: uniqueIds }
+  )
 
-  const users = (response.data?.users ?? []) as IPublicUserName[]
+  const users = response.data.users ?? []
   const map: TPublicUserNamesMap = {}
 
   for (const user of users) {
