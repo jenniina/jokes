@@ -1250,28 +1250,26 @@ button.blocked-btn.active {
   content: '';
   position: absolute;
   border-radius: 50%;
-  bottom: -5%;
-  top: 0;
-  left: 5%;
+  bottom: -10%;
+  top: -5%;
+  left: -5%;
   right: -10%;
   font-size: inherit;
-  background-color: var(--color-primary-3);
+  background-color: hsl(var(--hue-primary), 5%, 15%);
+  border: 1px solid hsl(var(--hue-primary), 5%, 44%);
   z-index: -1;
   opacity: 0.3;
 }
-.light .joke-icon::before {
-  background-color: var(--color-primary-2);
-  opacity: 0.8;
-}
-.main-header .joke-icon::before {
-  background-color: var(--color-primary-5);
-}
-.light .main-header .joke-icon::before {
-  background-color: var(--color-primary-2);
-}
 .joke-icon.flipped::before {
   left: -10%;
-  right: 5%;
+  right: -5%;
+  background-color: var(--color-primary-5);
+  border: 1px solid var(--color-primary-9);
+}
+.light .joke-icon::before {
+  border-color: transparent;
+  background-color: var(--color-primary-1);
+  opacity: 0.8;
 }
 .accordion-wrap {
   position: absolute;

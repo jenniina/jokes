@@ -1,8 +1,9 @@
-import React, { LegacyRef, RefObject } from 'react'
+import React, { LegacyRef } from 'react'
 //import Joke from './Joke'
 import { Select } from '../../Select/Select'
 import { SelectOption } from '../../Select/Select'
 import ButtonToggle from '../../ButtonToggle/ButtonToggle'
+import CheckboxToggle from '../../ButtonToggle/CheckboxToggle'
 import {
   EJokeType,
   ESafemode,
@@ -38,10 +39,12 @@ interface Props {
   setReveal: (reveal: boolean) => void
   isCheckedSafemode: boolean
   isCheckedJokeType: boolean
+  isCheckedEitherJokeType: boolean
   visibleJoke: boolean
   setVisibleJoke: (visibleJoke: boolean) => void
   handleToggleChangeSafemode: () => void
   handleToggleChangeEJokeType: () => void
+  handleToggleChangeEitherJokeType: () => void
   handleJokeSave: (e: React.FormEvent<HTMLFormElement>) => Promise<void>
   options: (enumObj: typeof ELanguagesLong) => SelectOption[]
   getKeyByValue: (
@@ -90,8 +93,10 @@ const Form = ({
   submitted,
   isCheckedSafemode,
   isCheckedJokeType,
+  isCheckedEitherJokeType,
   handleToggleChangeSafemode,
   handleToggleChangeEJokeType,
+  handleToggleChangeEitherJokeType,
   reveal,
   setReveal,
   handleJokeSave,
@@ -132,10 +137,10 @@ const Form = ({
             options={options(ELanguagesLong)}
             value={
               jokeLanguage
-                ? ({
+                ? {
                     value: jokeLanguage,
                     label: ELanguagesLong[jokeLanguage],
-                  } as SelectOption)
+                  }
                 : undefined
             }
             onChange={(o) => {
@@ -168,6 +173,16 @@ const Form = ({
               off={t('Single')}
               onChange={handleToggleChangeEJokeType}
               equal={true}
+              disabled={isCheckedEitherJokeType}
+            />
+
+            <CheckboxToggle
+              id="joketype-either"
+              name="joketype-either"
+              label={t('Either')}
+              checked={isCheckedEitherJokeType}
+              onChange={handleToggleChangeEitherJokeType}
+              className={`${uiLanguage} joketype-either`}
             />
           </div>
         </div>
@@ -215,11 +230,8 @@ const Form = ({
                 name="queryValue"
                 value={query}
                 onChange={(e) => {
-                  setQuery((e.target as HTMLInputElement).value)
-                  setQueryValue(
-                    encodeURIComponent((e.target as HTMLInputElement).value) +
-                      '&'
-                  )
+                  setQuery(e.target.value)
+                  setQueryValue(encodeURIComponent(e.target.value) + '&')
                 }}
               />
               <span>{t('SearchByKeyword')}</span>

@@ -1422,6 +1422,15 @@ export const translations = {
     cs: 'Single',
     fi: 'Yksiosainen',
   },
+  Either: {
+    en: 'Either',
+    es: 'Cualquiera',
+    fr: 'Les deux',
+    de: 'Beide',
+    pt: 'Qualquer um',
+    cs: 'Obojí',
+    fi: 'Kumpi vain',
+  },
   SkipToJokeSearch: {
     en: 'Skip to joke search',
     es: 'Saltar a la búsqueda de bromas',
@@ -1646,6 +1655,15 @@ export const translations = {
     pt: 'Tente outro termo de pesquisa',
     cs: 'Zkuste jiný vyhledávací výraz',
     fi: 'Kokeile toisella hakuehdolla',
+  },
+  TryTheOtherJokeType: {
+    en: 'Try the other joke type',
+    es: 'Prueba el otro tipo de chiste',
+    fr: "Essayez l'autre type de blague",
+    de: 'Versuche den anderen Witztyp',
+    pt: 'Tente o outro tipo de piada',
+    cs: 'Zkuste jiný typ vtipu',
+    fi: 'Kokeile toista vitsityyppiä',
   },
   MaybeTryAnotherLanguage: {
     en: 'Maybe try another language?',

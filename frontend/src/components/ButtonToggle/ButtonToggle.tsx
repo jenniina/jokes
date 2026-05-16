@@ -23,6 +23,7 @@ interface Props {
   label: string
   hideLabel?: boolean
   hideOnOff?: boolean
+  disabled?: boolean
 }
 const ButtonToggle = ({
   id,
@@ -37,6 +38,7 @@ const ButtonToggle = ({
   label,
   hideLabel,
   hideOnOff,
+  disabled,
 }: Props) => {
   const lightTheme = useTheme()
   const labelId = `toggle-label-${id}`
@@ -45,9 +47,10 @@ const ButtonToggle = ({
 
   return (
     <div
-      className={`${styles['toggle-container']} toggle-container ${className}-container ${wrapperClass} ${hideOnOff ? styles.small : ''}`}
+      className={`${styles['toggle-container']} toggle-container ${className}-container ${wrapperClass} ${hideOnOff ? styles.small : ''} ${disabled ? styles.disabled : ''}`}
       aria-labelledby={labelId}
       role="group"
+      aria-disabled={disabled}
     >
       <span
         id={labelId}
@@ -70,6 +73,7 @@ const ButtonToggle = ({
           type="checkbox"
           name={name}
           checked={isChecked}
+          disabled={disabled}
           onChange={onChange as ChangeEventHandler<HTMLInputElement>}
           className="scr"
           role="switch"
