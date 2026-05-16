@@ -149,10 +149,11 @@ function Pagination({
             disabled={safeCurrentPage === 1}
             onClick={() => onPageChange(1, true)}
           >
-            <Icon lib="bi" name="BiChevronsLeft" />{' '}
-            <span className="tooltip narrow2 below right">
+            <Icon lib="bi" name="BiChevronsLeft" aria-hidden="true" />{' '}
+            <span aria-hidden="true" className="tooltip narrow2 below right">
               {t('FirstPage')}
             </span>
+            <span className="scr">{t('FirstPage')}</span>
           </button>
           <button
             className={`inner-nav-btn back tooltip-wrap ${
@@ -161,8 +162,11 @@ function Pagination({
             disabled={safeCurrentPage === 1}
             onClick={() => onPageChange(safeCurrentPage - 1, true)}
           >
-            <Icon lib="bi" name="BiChevronLeft" />{' '}
-            <span className="tooltip narrow2 below right">{t('Back')}</span>
+            <Icon lib="bi" name="BiChevronLeft" aria-hidden="true" />{' '}
+            <span aria-hidden="true" className="tooltip narrow2 below right">
+              {t('Back')}
+            </span>
+            <span className="scr">{t('Back')}</span>
           </button>
         </div>
         <div className={`numbers${pageNumbers?.length === 1 ? ' hidden' : ''}`}>
@@ -192,8 +196,11 @@ function Pagination({
             disabled={safeCurrentPage === pageNumbers?.length}
             onClick={() => onPageChange(safeCurrentPage + 1, true)}
           >
-            <Icon lib="bi" name="BiChevronRight" />{' '}
-            <span className="tooltip narrow2 below left">{t('Next')}</span>
+            <Icon lib="bi" name="BiChevronRight" aria-hidden="true" />{' '}
+            <span aria-hidden="true" className="tooltip narrow2 below left">
+              {t('Next')}
+            </span>
+            <span className="scr">{t('Next')}</span>
           </button>
           <button
             className={`inner-nav-btn last tooltip-wrap ${
@@ -202,8 +209,11 @@ function Pagination({
             disabled={safeCurrentPage === pageNumbers?.length}
             onClick={() => onPageChange(pageNumbers?.length, true)}
           >
-            <Icon lib="bi" name="BiChevronsRight" />
-            <span className="tooltip narrow2 left below">
+            <Icon lib="bi" name="BiChevronsRight" aria-hidden="true" />
+            <span aria-hidden="true" className="tooltip narrow2 left below">
+              {t('LastPage')}: {pageNumbers?.length}
+            </span>
+            <span className="scr">
               {t('LastPage')}: {pageNumbers?.length}
             </span>
           </button>

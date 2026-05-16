@@ -43,9 +43,6 @@ type SelectProps = {
   x?: string
 } & (SingleSelectProps | MultipleSelectProps)
 
-let debounceTimeout: ReturnType<typeof setTimeout>
-let searchTerm = ''
-
 export function Select({
   z,
   instructions,
@@ -78,13 +75,27 @@ export function Select({
     setIsOpen(false)
   }
   const containerRef = useRef<HTMLDivElement>(null)
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const searchTermRef = useRef('')
 
   useOutsideClick({
     ref: containerRef,
     onOutsideClick: handleOutsideClick,
   })
 
-  const ariaLive = useRef<HTMLLabelElement>(null)
+  const ariaLive = useRef<HTMLSpanElement>(null)
+
+  const getOptionId = useCallback(
+    (option: SelectOption, index: number) => {
+      return `${id}-${index}-${sanitize(option.value.toString())}`
+    },
+    [id]
+  )
+
+  const activeDescendantId =
+    isOpen && options[highlightedIndex]
+      ? getOptionId(options[highlightedIndex], highlightedIndex)
+      : undefined
 
   function clearOptions() {
     return multiple ? onChange([]) : onChange(options[0])
@@ -97,9 +108,9 @@ export function Select({
         reset = true
       }
       if (multiple) {
-        if (value?.some(o => o.label === option.label) && reset) {
+        if (value?.some((o) => o.label === option.label) && reset) {
           reset = false
-          onChange(value?.filter(o => o.label !== option.label))
+          onChange(value?.filter((o) => o.label !== option.label))
           setTimeout(cooldown, 200)
         } else if (reset) {
           reset = false
@@ -115,7 +126,7 @@ export function Select({
   function isOptionSelected(option: SelectOption) {
     if (multiple) {
       return value?.some(
-        selectedOption => selectedOption.label === option.label
+        (selectedOption) => selectedOption.label === option.label
       )
     } else {
       return value?.label === option.label
@@ -134,6 +145,14 @@ export function Select({
       onChange([...newValue] as SelectOption & SelectOption[])
     }
   }, [value, onChange])
+
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     const contRef = containerRef.current
@@ -170,13 +189,15 @@ export function Select({
           break
         default:
           e.preventDefault()
-          clearTimeout(debounceTimeout)
-          searchTerm += e.key
-          debounceTimeout = setTimeout(() => {
-            searchTerm = ''
+          if (debounceTimeoutRef.current) {
+            clearTimeout(debounceTimeoutRef.current)
+          }
+          searchTermRef.current += e.key.toLowerCase()
+          debounceTimeoutRef.current = setTimeout(() => {
+            searchTermRef.current = ''
           }, 600)
           const searchedOption = options.find((option: SelectOption) => {
-            return option?.label.toLowerCase().startsWith(searchTerm)
+            return option?.label.toLowerCase().startsWith(searchTermRef.current)
           })
 
           if (searchedOption) {
@@ -200,7 +221,7 @@ export function Select({
       style={{ zIndex: z }}
     >
       <span
-        id={`${id}-instructions`}
+        aria-hidden={true}
         className={`
                 ${id}-instructions 
                 instructions
@@ -211,6 +232,9 @@ export function Select({
       >
         {instructions}
       </span>
+      <span id={`${id}-instructions`} className={`${styles.scr} scr`}>
+        {instructions}
+      </span>
 
       <div
         id={`${id}-container`}
@@ -218,18 +242,20 @@ export function Select({
         aria-labelledby={`${id}-instructions`}
         aria-controls={id}
         aria-expanded={isOpen}
-        aria-activedescendant={`${id}-${highlightedIndex}`}
+        aria-haspopup="listbox"
+        aria-activedescendant={activeDescendantId}
+        aria-invalid={showValidationError ?? undefined}
         ref={containerRef}
         //onBlur={() => setIsOpen(false)}
         onClick={() => {
           if (!isOpen) setHighlightedIndex(0)
-          setIsOpen(prev => !prev)
+          setIsOpen((prev) => !prev)
         }}
-        onKeyDown={e => {
+        onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()
             if (!isOpen) setHighlightedIndex(0)
-            setIsOpen(prev => !prev)
+            setIsOpen((prev) => !prev)
           }
         }}
         tabIndex={0}
@@ -248,15 +274,15 @@ export function Select({
           {multiple && value?.length === 1 && value[0].value == '' ? (
             <span>{selectAnOption}</span>
           ) : multiple && value?.length > 0 ? (
-            value?.map(v => (
+            value?.map((v) => (
               <button
                 type="button"
                 key={`${v.value}`}
-                onClick={e => {
+                onClick={(e) => {
                   e.stopPropagation()
                   selectOption(v)
                 }}
-                onKeyUp={e => {
+                onKeyUp={(e) => {
                   switch (e.code) {
                     case 'Enter':
                     case ' ':
@@ -309,7 +335,8 @@ export function Select({
         </span>
         {!hideDelete && (
           <button
-            onClick={e => {
+            type="button"
+            onClick={(e) => {
               e.stopPropagation()
               clearOptions()
             }}
@@ -323,11 +350,9 @@ export function Select({
         <div className={`${styles.caret} caret`}></div>
         <ul
           id={id}
-          aria-label="options"
           role="listbox"
-          aria-multiselectable={multiple ? 'true' : 'false'}
-          aria-expanded={isOpen}
           aria-labelledby={`${id}-instructions`}
+          aria-multiselectable={multiple ?? undefined}
           className={`${styles.options} options ${
             isOpen ? `${styles.show} show` : ''
           }`}
@@ -336,7 +361,7 @@ export function Select({
             <li
               role="option"
               aria-selected={isOptionSelected(option) ? 'true' : 'false'}
-              onClick={e => {
+              onClick={(e) => {
                 e.stopPropagation()
                 e.preventDefault() //to stop from occasionally running selectOption(option) twice, immediately unselecting the option
                 selectOption(option)
@@ -351,9 +376,8 @@ export function Select({
                   ? `${styles.highlighted} highlighted`
                   : ''
               }`}
-              // id={`${id}-${(option.label).replace(/\s+/g, '-').toLowerCase().replace(/[^a-zA-Z]/g, '')}-${index}`}
-              id={`${id}-${index}-${sanitize(option.value.toString())}`}
-              onKeyDown={e => {
+              id={getOptionId(option, index)}
+              onKeyDown={(e) => {
                 if (e.code === 'Enter' || e.code === ' ') {
                   e.preventDefault()
                   selectOption(option)
@@ -366,7 +390,6 @@ export function Select({
               }}
             >
               <input
-                multiple={multiple ? true : false}
                 id={`${id}-${
                   typeof option.label === 'string'
                     ? option?.label
