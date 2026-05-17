@@ -1,0 +1,12 @@
+.disclaimer section {
+  max-width: var(--width-small);
+  margin: 0 auto;
+}
+.disclaimer section h1 {
+  font-size: var(--title-XL);
+  text-align: left;
+  margin-left: 0;
+}
+.disclaimer section h2 {
+  font-size: var(--title-M);
+}
