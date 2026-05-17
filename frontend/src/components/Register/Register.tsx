@@ -5,6 +5,7 @@ import { ReducerProps } from '../../types'
 import { useAppDispatch } from '../../hooks/useAppDispatch'
 import { initializeUser } from '../../reducers/authReducer'
 import { useLanguageContext } from '../../contexts/LanguageContext'
+import { Link } from 'react-router-dom'
 
 interface Props {
   handleRegister: (e: FormEvent<HTMLFormElement>) => void
@@ -128,6 +129,16 @@ const Register = ({
                     <span>{t('ConfirmPassword')}</span>
                   </label>
                 </div>
+                <Link
+                  to="/info"
+                  style={{
+                    display: 'block',
+                    margin: '1em auto',
+                    textAlign: 'center',
+                  }}
+                >
+                  {t('Info')}
+                </Link>
                 <button type="submit" disabled={sending} className="restore">
                   {t('Register')}
                 </button>
