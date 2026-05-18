@@ -27,6 +27,7 @@ export default function Disclaimer({ type }: { type: string }) {
           <section>
             <div className="medium">
               <div className="mt1">
+                <h1>{t('Info')}</h1>
                 <p>{t('ThisDisclaimerExplainsHowWeHandleYourPersonalData')}</p>
                 <p>
                   {t(
@@ -36,7 +37,6 @@ export default function Disclaimer({ type }: { type: string }) {
                 <p>{t('Updated')}: 17.5.2026</p>
               </div>
               <div className="mt3">
-                <h1>{t('Info')}</h1>
                 <h2>{t('TheDataController')}</h2>
                 <p>
                   {t('TheDataControllerIs')}{' '}
@@ -61,9 +61,7 @@ export default function Disclaimer({ type }: { type: string }) {
                 <p>{t('YouHaveTheRightToAccessModifyOrDelete')}</p>
                 <p>
                   {t('IfYouHaveAnyConcernsAboutYourDataSecurity')}:{' '}
-                  <a href="https://react.jenniina.fi/contact">
-                    {t('ContactForm')}
-                  </a>
+                  <a href="https://react.jenniina.fi/contact">{t('Contact')}</a>
                 </p>
                 <h2>{t('ChangesToThisDisclaimer')}</h2>
                 <p>{t('WeMayUpdateThisDisclaimerFromTimeToTime')}</p>

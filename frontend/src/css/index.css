@@ -385,6 +385,7 @@ button:disabled {
 .light button.gray:hover,
 .light button.gray:focus-visible {
   background-position: 50% 98%;
+  color: var(--color-gray-1);
 }
 button,
 button.restore,

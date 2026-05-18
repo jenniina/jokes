@@ -606,13 +606,13 @@ function Jokes() {
     }
 
     const flags: IJoke['flags'] = flagsOverride ?? {
-        nsfw: false,
-        religious: false,
-        political: false,
-        racist: false,
-        sexist: false,
-        explicit: false,
-      }
+      nsfw: false,
+      religious: false,
+      political: false,
+      racist: false,
+      sexist: false,
+      explicit: false,
+    }
 
     setJokeCategory(category)
     setSubCategoryResults(subCategories ?? [])
@@ -1750,20 +1750,20 @@ function Jokes() {
   }
 
   const fill1 = lightTheme
-    ? 'hsl(var(--hue-tertiary), var(--sat-fade), 80%)'
-    : 'hsl(var(--hue-tertiary), var(--sat-fade), 12%)'
+    ? 'hsl(var(--hue-primary), var(--sat), 80%)'
+    : 'hsl(var(--hue-primary), var(--sat), 12%)'
 
   const fill2 = lightTheme
-    ? 'hsl(var(--hue-secondary), var(--sat), 88%)'
-    : 'hsl(var(--hue-secondary), 20%, 5%)'
+    ? 'hsl(var(--hue-tertiary), var(--sat-fade), 88%)'
+    : 'hsl(var(--hue-tertiary), var(--sat-semi), 8%)'
 
   const stroke1 = lightTheme
-    ? 'hsl(var(--hue-tertiary), var(--sat-semi), 22%)'
-    : 'hsl(var(--hue-tertiary), var(--sat-fade), 70%)'
+    ? 'hsl(var(--hue-primary), var(--sat-semi), 20%)'
+    : 'hsl(var(--hue-primary), var(--sat-fade), 70%)'
 
   const stroke2 = lightTheme
-    ? 'hsl(var(--hue-secondary), var(--sat-semi), 20%)'
-    : 'hsl(var(--hue-secondary), 10%, 55%)'
+    ? 'hsl(var(--hue-tertiary), var(--sat-semi), 20%)'
+    : 'hsl(var(--hue-tertiary), 6%, 55%)'
 
   return (
     <>

@@ -1255,8 +1255,8 @@ button.blocked-btn.active {
   left: -5%;
   right: -10%;
   font-size: inherit;
-  background-color: hsl(var(--hue-primary), 5%, 15%);
-  border: 1px solid hsl(var(--hue-primary), 5%, 44%);
+  background-color: hsl(var(--hue-tertiary), 5%, 15%);
+  border: 1px solid hsl(var(--hue-tertiary), 5%, 44%);
   z-index: -1;
   opacity: 0.3;
 }
