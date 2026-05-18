@@ -7,6 +7,7 @@ import {
   BiChevronRight,
   BiChevronsLeft,
   BiChevronsRight,
+  BiChevronsUp,
 } from 'react-icons/bi'
 import { IoSettingsSharp } from 'react-icons/io5'
 import { FaAnglesUp } from 'react-icons/fa6'
@@ -59,6 +60,7 @@ export const iconLibraries = {
     BiChevronRight,
     BiChevronsLeft,
     BiChevronsRight,
+    BiChevronsUp,
   },
   io5: {
     IoSettingsSharp,
